@@ -1,10 +1,6 @@
-Microsoft (R) Macro Assembler Version 6.11		    11/17/25 15:40:33
+Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:11:16
 src\main.asm						     Page 1 - 1
 
-
-				; safe_square.asm
-				; 使用 Irvine32.inc，不在堆疊上分配字串緩衝區
-				; 請用 ML /coff 組譯並以 Irvine32.lib 連結
 
 				INCLUDE Irvine32.inc
 			      C ; Include file for Irvine32.lib             (Irvine32.inc)
@@ -28,72 +24,89 @@ src\main.asm						     Page 1 - 1
 			      C .NOLIST
 			      C .LIST
 			      C 
+				INCLUDE GraphWin.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE DataFormat.inc
+			      C 
+ 00000005		      C BLOCK STRUCT
+ 00000000  0000 0000	      C     pos COORD <> 
+ 00000004  00		      C     dir BYTE ?
+			      C BLOCK ENDS
+			      C 
+			      C 
 
  = start@0			main EQU start@0
 
+				GetStdHandle  PROTO :DWORD
+				WriteConsoleW PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD
+				ExitProcess   PROTO :DWORD
+
  00000000			.DATA
-				    ; 使用靜態資料區，不放在堆疊上
- 00000000 DB 00			    squareChar    BYTE 219, 0      ; '█' (full block), null-terminated
- 00000002 41 75 74 68 6F	    infoMsg       BYTE "Author: Huang - safe demo", 0Dh,0Ah,0
-	   72 3A 20 48 75
-	   61 6E 67 20 2D
-	   20 73 61 66 65
-	   20 64 65 6D 6F
-	   0D 0A 00
- 0000001E 0C 0A 09 0E		    colors        BYTE 12,10,9,14  ; 4 種顏色：light red, light green, light blue, yellow
- 00000022 00000003		    colorMask     DWORD 3          ; 用於 mod 4 (and 3)
- 00000026 0A			    rows          BYTE 10
- 00000027 0A			    cols          BYTE 10
+ 00000000 00000000		    consoleHandle DWORD ?
+
+ 00000004 2588 0000		    fullBlock     WORD 2588h, 0      ; '█' (full block), null-terminated
+ 00000008 0C 0A 09 0E		    colors        BYTE 12,10,9,14  ;light red, light green, light blue, yellow
+ 0000000C 00000003		    colorMask     DWORD 3
+ 00000010 0A			    rows          BYTE 10
+ 00000011 0A			    cols          BYTE 10
+ 00000012 00000000		    cnt           DWORD ?
+
+ 00000016 000A 000A		    snake COORD <10, 10>
 
  00000000			.CODE
  00000000			main PROC
-				    ; 清螢幕並顯示說明字串（safe）
- 00000000  E8 00000000 E	    call Clrscr
- 00000005  BA 00000002 R	    mov edx, OFFSET infoMsg
- 0000000A  E8 00000000 E	    call WriteString
+				    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
+ 00000007  A3 00000000 R	    mov consoleHandle, eax
 
-				    ; 取得 row、col 值（都存在 .DATA 並為 byte）
- 0000000F  0F B6 0D		    movzx ecx, rows     ; ecx = rows
-	   00000026 R
- 00000016  33 F6		    xor esi, esi        ; esi = current row index (y)
+ 0000000C			MAIN_LOOP:
+ 0000000C  E8 00000000 E	    call ReadChar
 
- 00000018			row_loop:
- 00000018  51			    push ecx            ; 保存外迴圈計數
- 00000019  0F B6 0D		    movzx ecx, cols     ; ecx = cols
-	   00000027 R
- 00000020  33 FF		    xor edi, edi        ; edi = current col index (x)
+				    ; Detect input char
+				    ; UP ARROW, or W
+				    .IF ax == 1177h		
+ 00000017  66| 83 2D		        sub snake.y, 1
+	   00000018 R 01
+				    .ENDIF
+				    ; DOWN ARROW, or S
+				    .IF ax == 1F73h
+ 00000025  66| 83 05		        add snake.y, 1
+	   00000018 R 01
+				    .ENDIF
+				    ; LEFT ARROW, or A
+				    .IF ax == 1E61h
+ 00000033  66| 83 2D		        sub snake.x, 1
+	   00000016 R 01
+				    .ENDIF
+				    ; RIGHT ARROW, or D
+				    .IF ax == 2064h
+ 00000041  66| 83 05		        add snake.x, 1
+	   00000016 R 01
+				    .ENDIF
+				    ; ESC
+				    .IF ax == 011Bh
+ 0000004F  EB 1B		        jmp END_FUNC
+				    .ENDIF
 
- 00000022			col_loop:
-				    ; 計算 index = (x + y) mod 4  --> 使用 and 3
- 00000022  8B C6		    mov eax, esi
- 00000024  03 C7		    add eax, edi
- 00000026  83 E0 03		    and eax, 3
- 00000029  8A 98 0000001E R	    mov bl, colors[eax] ; bl = color code
+				;    mov edx, offset fullBlock
+				;    call WriteString
+				    invoke WriteConsoleW, 
+				        consoleHandle,
+				        ADDR fullBlock,
+				        LENGTHOF fullBlock,
+				        ADDR cnt,
+				        0
 
-				    ; 設定文字顏色（Irvine32 提供，會使用 bl）
- 0000002F  E8 00000000 E	    call SetTextColor
 
-				    ; 寫一個字元（WriteChar 由 Irvine32 處理，讀取 .DATA 的字元）
- 00000034  A0 00000000 R	    mov al, squareChar
- 00000039  E8 00000000 E	    call WriteChar
+ 0000006A  EB A0		    jmp MAIN_LOOP
 
- 0000003E  47			    inc edi
- 0000003F  E2 E1		    loop col_loop
-
- 00000041  E8 00000000 E	    call Crlf           ; 換行到下一列
- 00000046  59			    pop ecx             ; 恢復外迴圈計數
- 00000047  46			    inc esi
- 00000048  E2 CE		    loop row_loop
-
-				    ; 重設顏色並停在螢幕下方
- 0000004A  B3 07		    mov bl, 7
- 0000004C  E8 00000000 E	    call SetTextColor
- 00000051  E8 00000000 E	    call Crlf
- 00000056  E8 00000000 E	    call WaitMsg        ; 等待按鍵
+ 0000006C			END_FUNC:
+ 0000006C  E8 00000000 E	    call WaitMsg   
 				    exit
- 00000062			main ENDP
+ 00000078			main ENDP
 				END main
-Microsoft (R) Macro Assembler Version 6.11		    11/17/25 15:40:33
+Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:11:16
 src\main.asm						     Symbols 2 - 1
 
 
@@ -122,6 +135,9 @@ Structures and Unions:
                 N a m e                  Size
                                          Offset      Type
 
+BLOCK  . . . . . . . . . . . . .	 00000005
+  pos  . . . . . . . . . . . . .	 00000000	 DWord
+  dir  . . . . . . . . . . . . .	 00000004	 Byte
 CONSOLE_CURSOR_INFO  . . . . . .	 00000008
   dwSize . . . . . . . . . . . .	 00000000	 DWord
   bVisible . . . . . . . . . . .	 00000004	 DWord
@@ -181,6 +197,21 @@ MOUSE_EVENT_RECORD . . . . . . .	 00000010
   dwButtonState  . . . . . . . .	 00000004	 DWord
   dwMouseControlKeyState . . . .	 00000008	 DWord
   dwEventFlags . . . . . . . . .	 0000000C	 DWord
+MSGStruct  . . . . . . . . . . .	 0000001C
+  msgWnd . . . . . . . . . . . .	 00000000	 DWord
+  msgMessage . . . . . . . . . .	 00000004	 DWord
+  msgWparam  . . . . . . . . . .	 00000008	 DWord
+  msgLparam  . . . . . . . . . .	 0000000C	 DWord
+  msgTime  . . . . . . . . . . .	 00000010	 DWord
+  msgPt  . . . . . . . . . . . .	 00000014	 QWord
+POINT  . . . . . . . . . . . . .	 00000008
+  X  . . . . . . . . . . . . . .	 00000000	 DWord
+  Y  . . . . . . . . . . . . . .	 00000004	 DWord
+RECT . . . . . . . . . . . . . .	 00000010
+  left . . . . . . . . . . . . .	 00000000	 DWord
+  top  . . . . . . . . . . . . .	 00000004	 DWord
+  right  . . . . . . . . . . . .	 00000008	 DWord
+  bottom . . . . . . . . . . . .	 0000000C	 DWord
 SMALL_RECT . . . . . . . . . . .	 00000008
   Left . . . . . . . . . . . . .	 00000000	 Word
   Top  . . . . . . . . . . . . .	 00000002	 Word
@@ -197,6 +228,17 @@ SYSTEMTIME . . . . . . . . . . .	 00000010
   wMilliseconds  . . . . . . . .	 0000000E	 Word
 WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
   dwSize . . . . . . . . . . . .	 00000000	 DWord
+WNDCLASS . . . . . . . . . . . .	 00000028
+  style  . . . . . . . . . . . .	 00000000	 DWord
+  lpfnWndProc  . . . . . . . . .	 00000004	 DWord
+  cbClsExtra . . . . . . . . . .	 00000008	 DWord
+  cbWndExtra . . . . . . . . . .	 0000000C	 DWord
+  hInstance  . . . . . . . . . .	 00000010	 DWord
+  hIcon  . . . . . . . . . . . .	 00000014	 DWord
+  hCursor  . . . . . . . . . . .	 00000018	 DWord
+  hbrBackground  . . . . . . . .	 0000001C	 DWord
+  lpszMenuName . . . . . . . . .	 00000020	 DWord
+  lpszClassName  . . . . . . . .	 00000024	 DWord
 
 
 Segments and Groups:
@@ -205,8 +247,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000028 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000062 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000001A DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000078 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -218,8 +260,11 @@ CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateWindowExA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DefWindowProcA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DispatchMessageA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -239,6 +284,8 @@ GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMessageA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetModuleHandleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -246,6 +293,8 @@ GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetWindowDC  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetWindowRect  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -253,6 +302,8 @@ HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LoadCursorA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LoadIconA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -261,6 +312,7 @@ OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PostQuitMessage  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -276,6 +328,7 @@ ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RegisterClassA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -287,6 +340,7 @@ SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowWindow . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -295,6 +349,7 @@ Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+UpdateWindow . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -302,6 +357,7 @@ WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleW  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -315,9 +371,9 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000062 Public STDCALL
-  row_loop . . . . . . . . . . .	L Near	 00000018 _TEXT	
-  col_loop . . . . . . . . . . .	L Near	 00000022 _TEXT	
+start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000078 Public STDCALL
+  MAIN_LOOP  . . . . . . . . . .	L Near	 0000000C _TEXT	
+  END_FUNC . . . . . . . . . . .	L Near	 0000006C _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -336,11 +392,17 @@ Symbols:
 @stack . . . . . . . . . . . . .	Text   	 FLAT
 ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
 CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+COLOR_BACKGROUND . . . . . . . .	Number	 00000002h   
+COLOR_WINDOW . . . . . . . . . .	Number	 00000005h   
 CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
 CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
 CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CW_USEDEFAULT  . . . . . . . . .	Number	 -80000000h   
 CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+CreateWindowEx . . . . . . . . .	Text   	 CreateWindowExA
 DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+DefWindowProc  . . . . . . . . .	Text   	 DefWindowProcA
+DispatchMessage  . . . . . . . .	Text   	 DispatchMessageA
 ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
 ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
 ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
@@ -383,6 +445,8 @@ GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h
 GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
 GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
 GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+GetMessage . . . . . . . . . . .	Text   	 GetMessageA
+GetModuleHandle  . . . . . . . .	Text   	 GetModuleHandleA
 HANDLE . . . . . . . . . . . . .	Text   	 DWORD
 HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
 HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
@@ -393,8 +457,10 @@ IDABORT  . . . . . . . . . . . .	Number	 00000003h
 IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
 IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
 IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDC_ARROW  . . . . . . . . . . .	Number	 00007F00h   
 IDHELP . . . . . . . . . . . . .	Number	 00000009h   
 IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDI_APPLICATION  . . . . . . . .	Number	 00007F00h   
 IDNO . . . . . . . . . . . . . .	Number	 00000007h   
 IDOK . . . . . . . . . . . . . .	Number	 00000001h   
 IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
@@ -407,6 +473,9 @@ KEY_EVENT  . . . . . . . . . . .	Number	 00000001h
 KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
 LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
 LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+LoadCursor . . . . . . . . . . .	Text   	 LoadCursorA
+LoadIcon . . . . . . . . . . . .	Text   	 LoadIconA
+MAIN_WINDOW_STYLE  . . . . . . .	Number	 118F0000h   
 MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
 MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
 MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
@@ -443,12 +512,14 @@ RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h
 RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
 ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
 ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+RegisterClass  . . . . . . . . .	Text   	 RegisterClassA
 SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
 SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
 SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
 STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
 STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
 STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SW_SHOW  . . . . . . . . . . . .	Number	 00000005h   
 SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
 TAB  . . . . . . . . . . . . . .	Number	 00000009h   
 TRUE . . . . . . . . . . . . . .	Number	 00000001h   
@@ -532,19 +603,33 @@ VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh
 VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
 VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
 WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WM_CLOSE . . . . . . . . . . . .	Number	 00000010h   
+WM_CREATE  . . . . . . . . . . .	Number	 00000001h   
+WM_LBUTTONDOWN . . . . . . . . .	Number	 00000201h   
+WS_BORDER  . . . . . . . . . . .	Number	 00800000h   
+WS_CAPTION . . . . . . . . . . .	Number	 00C00000h   
+WS_DLGFRAME  . . . . . . . . . .	Number	 00400000h   
+WS_MAXIMIZEBOX . . . . . . . . .	Number	 00010000h   
+WS_MINIMIZEBOX . . . . . . . . .	Number	 00020000h   
+WS_OVERLAPPED  . . . . . . . . .	Number	 00000000h   
+WS_SYSMENU . . . . . . . . . . .	Number	 00080000h   
+WS_THICKFRAME  . . . . . . . . .	Number	 00040000h   
+WS_VISIBLE . . . . . . . . . . .	Number	 10000000h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
-colorMask  . . . . . . . . . . .	DWord	 00000022 _DATA	
-colors . . . . . . . . . . . . .	Byte	 0000001E _DATA	
-cols . . . . . . . . . . . . . .	Byte	 00000027 _DATA	
+cnt  . . . . . . . . . . . . . .	DWord	 00000012 _DATA	
+colorMask  . . . . . . . . . . .	DWord	 0000000C _DATA	
+colors . . . . . . . . . . . . .	Byte	 00000008 _DATA	
+cols . . . . . . . . . . . . . .	Byte	 00000011 _DATA	
+consoleHandle  . . . . . . . . .	DWord	 00000000 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+fullBlock  . . . . . . . . . . .	Word	 00000004 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
-infoMsg  . . . . . . . . . . . .	Byte	 00000002 _DATA	
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
 lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
 lightGray  . . . . . . . . . . .	Number	 00000007h   
@@ -554,8 +639,8 @@ lightRed . . . . . . . . . . . .	Number	 0000000Ch
 magenta  . . . . . . . . . . . .	Number	 00000005h   
 main . . . . . . . . . . . . . .	Text   	 start@0
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-rows . . . . . . . . . . . . . .	Byte	 00000026 _DATA	
-squareChar . . . . . . . . . . .	Byte	 00000000 _DATA	
+rows . . . . . . . . . . . . . .	Byte	 00000010 _DATA	
+snake  . . . . . . . . . . . . .	COORD	 00000016 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
