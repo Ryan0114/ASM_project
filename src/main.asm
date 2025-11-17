@@ -12,7 +12,7 @@ ExitProcess   PROTO :DWORD
 .DATA
     consoleHandle DWORD ?
 
-    fullBlock     WORD 2588h, 0      ; '█' (full block), null-terminated
+    fullBlock     WORD 2 dup(2588h), 0      ; '█' (full block), null-terminated
     colors        BYTE 12,10,9,14  ;light red, light green, light blue, yellow
     colorMask     DWORD 3
     rows          BYTE 10
@@ -33,26 +33,29 @@ MAIN_LOOP:
     ; UP ARROW, or W
     .IF ax == 1177h		
         sub snake.y, 1
+        call ClrScr
     .ENDIF
     ; DOWN ARROW, or S
     .IF ax == 1F73h
         add snake.y, 1
+        call ClrScr
     .ENDIF
     ; LEFT ARROW, or A
     .IF ax == 1E61h
-        sub snake.x, 1
+        sub snake.x, 2
+        call ClrScr
     .ENDIF
     ; RIGHT ARROW, or D
     .IF ax == 2064h
-        add snake.x, 1
+        add snake.x, 2
+        call ClrScr
     .ENDIF
     ; ESC
     .IF ax == 011Bh
         jmp END_FUNC
     .ENDIF
 
-;    mov edx, offset fullBlock
-;    call WriteString
+    INVOKE SetConsoleCursorPosition, consoleHandle, snake
     invoke WriteConsoleW, 
         consoleHandle,
         ADDR fullBlock,

@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:11:16
+Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:45:43
 src\main.asm						     Page 1 - 1
 
 
@@ -46,14 +46,16 @@ src\main.asm						     Page 1 - 1
  00000000			.DATA
  00000000 00000000		    consoleHandle DWORD ?
 
- 00000004 2588 0000		    fullBlock     WORD 2588h, 0      ; '█' (full block), null-terminated
- 00000008 0C 0A 09 0E		    colors        BYTE 12,10,9,14  ;light red, light green, light blue, yellow
- 0000000C 00000003		    colorMask     DWORD 3
- 00000010 0A			    rows          BYTE 10
- 00000011 0A			    cols          BYTE 10
- 00000012 00000000		    cnt           DWORD ?
+ 00000004  00000002 [		    fullBlock     WORD 2 dup(2588h), 0      ; '█' (full block), null-terminated
+	    2588
+	   ] 0000
+ 0000000A 0C 0A 09 0E		    colors        BYTE 12,10,9,14  ;light red, light green, light blue, yellow
+ 0000000E 00000003		    colorMask     DWORD 3
+ 00000012 0A			    rows          BYTE 10
+ 00000013 0A			    cols          BYTE 10
+ 00000014 00000000		    cnt           DWORD ?
 
- 00000016 000A 000A		    snake COORD <10, 10>
+ 00000018 000A 000A		    snake COORD <10, 10>
 
  00000000			.CODE
  00000000			main PROC
@@ -67,30 +69,33 @@ src\main.asm						     Page 1 - 1
 				    ; UP ARROW, or W
 				    .IF ax == 1177h		
  00000017  66| 83 2D		        sub snake.y, 1
-	   00000018 R 01
+	   0000001A R 01
+ 0000001F  E8 00000000 E	        call ClrScr
 				    .ENDIF
 				    ; DOWN ARROW, or S
 				    .IF ax == 1F73h
- 00000025  66| 83 05		        add snake.y, 1
-	   00000018 R 01
+ 0000002A  66| 83 05		        add snake.y, 1
+	   0000001A R 01
+ 00000032  E8 00000000 E	        call ClrScr
 				    .ENDIF
 				    ; LEFT ARROW, or A
 				    .IF ax == 1E61h
- 00000033  66| 83 2D		        sub snake.x, 1
-	   00000016 R 01
+ 0000003D  66| 83 2D		        sub snake.x, 2
+	   00000018 R 02
+ 00000045  E8 00000000 E	        call ClrScr
 				    .ENDIF
 				    ; RIGHT ARROW, or D
 				    .IF ax == 2064h
- 00000041  66| 83 05		        add snake.x, 1
-	   00000016 R 01
+ 00000050  66| 83 05		        add snake.x, 2
+	   00000018 R 02
+ 00000058  E8 00000000 E	        call ClrScr
 				    .ENDIF
 				    ; ESC
 				    .IF ax == 011Bh
- 0000004F  EB 1B		        jmp END_FUNC
+ 00000063  EB 2F		        jmp END_FUNC
 				    .ENDIF
 
-				;    mov edx, offset fullBlock
-				;    call WriteString
+				    INVOKE SetConsoleCursorPosition, consoleHandle, snake
 				    invoke WriteConsoleW, 
 				        consoleHandle,
 				        ADDR fullBlock,
@@ -99,14 +104,14 @@ src\main.asm						     Page 1 - 1
 				        0
 
 
- 0000006A  EB A0		    jmp MAIN_LOOP
+ 0000008F  E9 FFFFFF78		    jmp MAIN_LOOP
 
- 0000006C			END_FUNC:
- 0000006C  E8 00000000 E	    call WaitMsg   
+ 00000094			END_FUNC:
+ 00000094  E8 00000000 E	    call WaitMsg   
 				    exit
- 00000078			main ENDP
+ 000000A0			main ENDP
 				END main
-Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:11:16
+Microsoft (R) Macro Assembler Version 6.11		    11/18/25 00:45:43
 src\main.asm						     Symbols 2 - 1
 
 
@@ -247,8 +252,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 0000001A DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000078 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000001C DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000A0 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -371,9 +376,9 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000078 Public STDCALL
+start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000A0 Public STDCALL
   MAIN_LOOP  . . . . . . . . . .	L Near	 0000000C _TEXT	
-  END_FUNC . . . . . . . . . . .	L Near	 0000006C _TEXT	
+  END_FUNC . . . . . . . . . . .	L Near	 00000094 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -620,10 +625,10 @@ WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
-cnt  . . . . . . . . . . . . . .	DWord	 00000012 _DATA	
-colorMask  . . . . . . . . . . .	DWord	 0000000C _DATA	
-colors . . . . . . . . . . . . .	Byte	 00000008 _DATA	
-cols . . . . . . . . . . . . . .	Byte	 00000011 _DATA	
+cnt  . . . . . . . . . . . . . .	DWord	 00000014 _DATA	
+colorMask  . . . . . . . . . . .	DWord	 0000000E _DATA	
+colors . . . . . . . . . . . . .	Byte	 0000000A _DATA	
+cols . . . . . . . . . . . . . .	Byte	 00000013 _DATA	
 consoleHandle  . . . . . . . . .	DWord	 00000000 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
@@ -639,8 +644,8 @@ lightRed . . . . . . . . . . . .	Number	 0000000Ch
 magenta  . . . . . . . . . . . .	Number	 00000005h   
 main . . . . . . . . . . . . . .	Text   	 start@0
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-rows . . . . . . . . . . . . . .	Byte	 00000010 _DATA	
-snake  . . . . . . . . . . . . .	COORD	 00000016 _DATA	
+rows . . . . . . . . . . . . . .	Byte	 00000012 _DATA	
+snake  . . . . . . . . . . . . .	COORD	 00000018 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
