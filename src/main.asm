@@ -93,9 +93,21 @@ PLOT_APPLE:
 		jmp END_FUNC 
 	.ENDIF 
 
+; check if the direction is valid
+    mov al, snake[0].dir
+    cmp al, bl
+    je UPDATE_POS
+
+    mov bh, bl
+    and al, 1
+    and bh, 1
+    cmp al, bh
+    je NO_UPDATE
+     
+UPDATE_POS:
     movzx ecx, snakeLen 
     mov esi, 0
-UPDATE_POS:
+UPDATE_LOOP:
     mov ax, WORD PTR snake[esi].pos.X
     mov WORD PTR lastPos.pos.X, ax 
     mov ax, WORD PTR snake[esi].pos.Y
@@ -125,8 +137,9 @@ UPDATE_POS:
     mov bl, bh
     add esi, TYPE snake 
 
-    loop UPDATE_POS
+    loop UPDATE_LOOP
 
+NO_UPDATE:   
     ; check apple
     movzx ecx, appleLen
     mov esi, 0
