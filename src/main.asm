@@ -22,6 +22,8 @@ snakeLen BYTE 5
 lastPos BLOCK <>
 apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
 appleLen BYTE LENGTHOF apples 
+obstacles OBSTACLE <<30, 10>>, <<40, 10>>
+obstacleLen BYTE LENGTHOF obstacles
 
 .CODE 
 main PROC 
@@ -67,6 +69,25 @@ PLOT_APPLE:
     add esi, TYPE apples
     loop PLOT_APPLE
 
+; plot obstacle    
+    movzx ecx, obstacleLen
+    mov esi, 0
+PLOT_OBSTACLE:
+    pushad
+    INVOKE SetConsoleCursorPosition, consoleHandle, obstacles[esi].pos
+    INVOKE SetConsoleTextAttribute, consoleHandle, 08h
+    INVOKE WriteConsoleW,
+        consoleHandle,
+        ADDR fullBlock,
+        2,
+        ADDR cnt,
+        0
+    INVOKE SetConsoleTextAttribute, consoleHandle, 07h
+    popad
+    add esi, TYPE obstacles
+    loop PLOT_OBSTACLE
+
+INPUT:
     ; Detect input char
 	call ReadChar ; ReadKey to continue without waiting user input 
 
@@ -109,16 +130,14 @@ SELF_INTERSECTING:
     movzx ecx, snakeLen
     add ecx, -2
     mov esi, TYPE snake 
-SELF_INTERSECTING_LOOP:
-    mov dx, snake[0].pos.X
+
+    mov ax, snake[0].pos.X
     .IF bl == 0
-        add dx, 2
+        add ax, 2
     .ENDIF
     .IF bl == 2
-        add dx, -2
+        add ax, -2
     .ENDIF
-    cmp dx, snake[esi].pos.X
-    jne CONTINUE_SELF 
 
     mov dx, snake[0].pos.Y
     .IF bl == 1
@@ -127,6 +146,12 @@ SELF_INTERSECTING_LOOP:
     .IF bl == 3
         add dx, 1
     .ENDIF
+
+
+SELF_INTERSECTING_LOOP:
+    cmp ax, snake[esi].pos.X
+    jne CONTINUE_SELF 
+
     cmp dx, snake[esi].pos.Y
     jne CONTINUE_SELF 
 
@@ -135,6 +160,22 @@ SELF_INTERSECTING_LOOP:
 CONTINUE_SELF:
     add esi, TYPE snake
     loop SELF_INTERSECTING_LOOP
+
+OBSTACLE_COLLISION:
+    movzx ecx, obstacleLen
+    mov esi, 0 
+OBSTACLE_LOOP:
+    cmp ax, obstacles[esi].pos.X
+    jne CONTINUE_OBS
+
+    cmp dx, obstacles[esi].pos.Y
+    jne CONTINUE_OBS
+
+    jmp NO_UPDATE
+
+CONTINUE_OBS:
+    add esi, TYPE obstacles
+    loop OBSTACLE_LOOP
 
 UPDATE_POS:
     movzx ecx, snakeLen 
