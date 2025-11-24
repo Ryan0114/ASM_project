@@ -17,8 +17,8 @@ colorMask DWORD 3
 rows BYTE 10 
 cols BYTE 10 
 cnt DWORD ? 
-snake BLOCK <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
-snakeLen BYTE 4
+snake BLOCK <<10, 1>,0>, <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
+snakeLen BYTE 5
 lastPos BLOCK <>
 apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
 appleLen BYTE LENGTHOF apples 
@@ -93,9 +93,53 @@ PLOT_APPLE:
 		jmp END_FUNC 
 	.ENDIF 
 
+; check if the direction is valid
+    mov al, snake[0].dir
+    cmp al, bl
+    je SELF_INTERSECTING 
+
+    mov bh, bl
+    and al, 1
+    and bh, 1
+    cmp al, bh
+    je NO_UPDATE
+
+; check if the destination is empty
+SELF_INTERSECTING:
+    movzx ecx, snakeLen
+    add ecx, -2
+    mov esi, TYPE snake 
+SELF_INTERSECTING_LOOP:
+    mov dx, snake[0].pos.X
+    .IF bl == 0
+        add dx, 2
+    .ENDIF
+    .IF bl == 2
+        add dx, -2
+    .ENDIF
+    cmp dx, snake[esi].pos.X
+    jne CONTINUE_SELF 
+
+    mov dx, snake[0].pos.Y
+    .IF bl == 1
+        add dx, -1
+    .ENDIF
+    .IF bl == 3
+        add dx, 1
+    .ENDIF
+    cmp dx, snake[esi].pos.Y
+    jne CONTINUE_SELF 
+
+    jmp NO_UPDATE
+
+CONTINUE_SELF:
+    add esi, TYPE snake
+    loop SELF_INTERSECTING_LOOP
+
+UPDATE_POS:
     movzx ecx, snakeLen 
     mov esi, 0
-UPDATE_POS:
+UPDATE_LOOP:
     mov ax, WORD PTR snake[esi].pos.X
     mov WORD PTR lastPos.pos.X, ax 
     mov ax, WORD PTR snake[esi].pos.Y
@@ -125,19 +169,21 @@ UPDATE_POS:
     mov bl, bh
     add esi, TYPE snake 
 
-    loop UPDATE_POS
+    loop UPDATE_LOOP
 
+NO_UPDATE:   
     ; check apple
     movzx ecx, appleLen
     mov esi, 0
 APPLE_EATEN:
-    .IF apples[esi].eaten == 0
+    mov al, apples[esi].eaten
+    .IF al == 0
         mov ax, snake[0].pos.X
         cmp ax, apples[esi].pos.X
-        jne DETECT_BORDER
+        jne CONTINUE_APPLE
         mov ax, snake[0].pos.Y
         cmp ax, apples[esi].pos.Y
-        jne DETECT_BORDER 
+        jne CONTINUE_APPLE
 
         movzx eax, snakeLen
         imul eax, TYPE snake
@@ -150,6 +196,7 @@ APPLE_EATEN:
         inc snakeLen
         mov apples[esi].eaten, 1
     .ENDIF
+CONTINUE_APPLE:
     add esi, TYPE apples 
     loop APPLE_EATEN
 
