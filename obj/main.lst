@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    11/24/25 17:11:50
+Microsoft (R) Macro Assembler Version 6.11		    11/24/25 18:45:10
 src\main.asm						     Page 1 - 1
 
 
@@ -73,7 +73,10 @@ src\main.asm						     Page 1 - 1
 	   ]
  0000007C 04			snakeLen BYTE 4
  0000007D 0000 0000 00		lastPos BLOCK <>
- 00000082 0014 0014 00		apples APPLE <<20, 20>,0>
+ 00000082 0014 0014 00		apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
+	   001A 0014 00
+	   0020 0014 00
+ 00000091 03			appleLen BYTE LENGTHOF apples 
 
  00000000			.CODE 
  00000000			main PROC 
@@ -101,9 +104,13 @@ src\main.asm						     Page 1 - 1
  0000004C  E2 CF			loop PLOT_SNAKE
 
 				; plot apple
-				    .IF apples.eaten == 0 
- 00000057  60			        pushad
-				        INVOKE SetConsoleCursorPosition, consoleHandle, apples.pos 
+ 0000004E  0F B6 0D		    movzx ecx, appleLen 
+	   00000091 R
+ 00000055  BE 00000000		    mov esi, 0
+ 0000005A			PLOT_APPLE:
+				    .IF apples[esi].eaten == 0 
+ 00000063  60			        pushad
+				        INVOKE SetConsoleCursorPosition, consoleHandle, apples[esi].pos 
 				        INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
 				        INVOKE WriteConsoleW, 
 				            consoleHandle, 
@@ -112,142 +119,150 @@ src\main.asm						     Page 1 - 1
 				            ADDR cnt, 
 				            0 
 				        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
- 0000009C  61			        popad
+ 000000A8  61			        popad
 				    .ENDIF
+ 000000A9  83 C6 05		    add esi, TYPE apples
+ 000000AC  E2 AC		    loop PLOT_APPLE
 
 				    ; Detect input char
- 0000009D  E8 00000000 E		call ReadChar ; ReadKey to continue without waiting user input 
+ 000000AE  E8 00000000 E		call ReadChar ; ReadKey to continue without waiting user input 
 
 				    ; store new direction in bl
 
 					; UP ARROW, or W 
 					.IF ax == 1177h
- 000000A8  B3 01			    mov bl, 1	
+ 000000B9  B3 01			    mov bl, 1	
 					.ENDIF 
 					; DOWN ARROW, or S 
 					.IF ax == 1F73h
- 000000B0  B3 03			    mov bl, 3	
+ 000000C1  B3 03			    mov bl, 3	
 					.ENDIF 
 					; LEFT ARROW, or A 
 					.IF ax == 1E61h 
- 000000B8  B3 02			    mov bl, 2	
+ 000000C9  B3 02			    mov bl, 2	
 					.ENDIF 
 				    ; RIGHT ARROW, or D 
 					.IF ax == 2064h 
- 000000C0  B3 00			    mov bl, 0	
+ 000000D1  B3 00			    mov bl, 0	
 					.ENDIF 
 					; ESC 
 					.IF ax == 011Bh 
- 000000C8  E9 0000012A				jmp END_FUNC 
+ 000000D9  E9 0000013B				jmp END_FUNC 
 					.ENDIF 
 
- 000000CD  0F B6 0D		    movzx ecx, snakeLen 
+ 000000DE  0F B6 0D		    movzx ecx, snakeLen 
 	   0000007C R
- 000000D4  BE 00000000		    mov esi, 0
- 000000D9			UPDATE_POS:
- 000000D9  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.X
+ 000000E5  BE 00000000		    mov esi, 0
+ 000000EA			UPDATE_POS:
+ 000000EA  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.X
 	   00000018 R
- 000000E0  66| A3		    mov WORD PTR lastPos.pos.X, ax 
+ 000000F1  66| A3		    mov WORD PTR lastPos.pos.X, ax 
 	   0000007D R
- 000000E6  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.Y
+ 000000F7  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.Y
 	   0000001A R
- 000000ED  66| A3		    mov WORD PTR lastPos.pos.Y, ax
+ 000000FE  66| A3		    mov WORD PTR lastPos.pos.Y, ax
 	   0000007F R
- 000000F3  8A 86 0000001C R	    mov al, BYTE PTR snake[esi].dir
- 000000F9  A2 00000081 R	    mov BYTE PTR lastPos.dir, al
+ 00000104  8A 86 0000001C R	    mov al, BYTE PTR snake[esi].dir
+ 0000010A  A2 00000081 R	    mov BYTE PTR lastPos.dir, al
 
 				    ; right
 				    .IF bl == 0
- 00000102  66| 83 86		        add snake[esi].pos.X, 2 
+ 00000113  66| 83 86		        add snake[esi].pos.X, 2 
 	   00000018 R 02
 				    .ENDIF
 				    ; top
 				    .IF bl == 1
- 0000010F  66| 83 86		        add snake[esi].pos.Y, -1
+ 00000120  66| 83 86		        add snake[esi].pos.Y, -1
 	   0000001A R FF
 				    .ENDIF
 				    ; left
 				    .IF bl == 2
- 0000011C  66| 83 86		        add snake[esi].pos.X, -2
+ 0000012D  66| 83 86		        add snake[esi].pos.X, -2
 	   00000018 R FE
 				    .ENDIF
 				    ; down
 				    .IF bl == 3
- 00000129  66| 83 86		        add snake[esi].pos.Y, 1 
+ 0000013A  66| 83 86		        add snake[esi].pos.Y, 1 
 	   0000001A R 01
 				    .ENDIF
 				    
- 00000131  8A BE 0000001C R	    mov bh, snake[esi].dir
- 00000137  88 9E 0000001C R	    mov snake[esi].dir, bl
- 0000013D  8A DF		    mov bl, bh
- 0000013F  83 C6 05		    add esi, TYPE snake 
+ 00000142  8A BE 0000001C R	    mov bh, snake[esi].dir
+ 00000148  88 9E 0000001C R	    mov snake[esi].dir, bl
+ 0000014E  8A DF		    mov bl, bh
+ 00000150  83 C6 05		    add esi, TYPE snake 
 
- 00000142  E2 95		    loop UPDATE_POS
+ 00000153  E2 95		    loop UPDATE_POS
 
 				    ; check apple
-				    .IF apples.eaten == 0
- 0000014D  66| A1		        mov ax, snake[0].pos.X
+ 00000155  0F B6 0D		    movzx ecx, appleLen
+	   00000091 R
+ 0000015C  BE 00000000		    mov esi, 0
+ 00000161			APPLE_EATEN:
+				    .IF apples[esi].eaten == 0
+ 0000016A  66| A1		        mov ax, snake[0].pos.X
 	   00000018 R
- 00000153  66| 3B 05		        cmp ax, apples.pos.X
+ 00000170  66| 3B 86		        cmp ax, apples[esi].pos.X
 	   00000082 R
- 0000015A  75 4E		        jne DETECT_BORDER
- 0000015C  66| A1		        mov ax, snake[0].pos.Y
+ 00000177  75 53		        jne DETECT_BORDER
+ 00000179  66| A1		        mov ax, snake[0].pos.Y
 	   0000001A R
- 00000162  66| 3B 05		        cmp ax, apples.pos.Y
+ 0000017F  66| 3B 86		        cmp ax, apples[esi].pos.Y
 	   00000084 R
- 00000169  75 3F		        jne DETECT_BORDER 
+ 00000186  75 44		        jne DETECT_BORDER 
 
- 0000016B  0F B6 05		        movzx eax, snakeLen
+ 00000188  0F B6 05		        movzx eax, snakeLen
 	   0000007C R
- 00000172  6B C0 05		        imul eax, TYPE snake
- 00000175  66| 8B 1D		        mov bx, lastPos.pos.X
+ 0000018F  6B C0 05		        imul eax, TYPE snake
+ 00000192  66| 8B 1D		        mov bx, lastPos.pos.X
 	   0000007D R
- 0000017C  66| 89 98		        mov snake[eax].pos.X, bx
+ 00000199  66| 89 98		        mov snake[eax].pos.X, bx
 	   00000018 R
- 00000183  66| 8B 1D		        mov bx, lastPos.pos.Y
+ 000001A0  66| 8B 1D		        mov bx, lastPos.pos.Y
 	   0000007F R
- 0000018A  66| 89 98		        mov snake[eax].pos.Y, bx
+ 000001A7  66| 89 98		        mov snake[eax].pos.Y, bx
 	   0000001A R
- 00000191  8A 1D 00000081 R	        mov bl, lastPos.dir
- 00000197  88 98 0000001C R	        mov snake[eax].dir, bl    
- 0000019D  FE 05 0000007C R	        inc snakeLen
- 000001A3  C6 05 00000086 R	        mov apples.eaten, 1
+ 000001AE  8A 1D 00000081 R	        mov bl, lastPos.dir
+ 000001B4  88 98 0000001C R	        mov snake[eax].dir, bl    
+ 000001BA  FE 05 0000007C R	        inc snakeLen
+ 000001C0  C6 86 00000086 R	        mov apples[esi].eaten, 1
 	   01
 				    .ENDIF
+ 000001C7  83 C6 05		    add esi, TYPE apples 
+ 000001CA  E2 95		    loop APPLE_EATEN
 
- 000001AA			DETECT_BORDER:    
+ 000001CC			DETECT_BORDER:    
 					; Detect border
 					; If over the border then stay at the original position
 					; x lowerbound
 					.IF snake[0].pos.X <= 0h
- 000001B4  66| 83 05				add snake[0].pos.X, 2
+ 000001D6  66| 83 05				add snake[0].pos.X, 2
 	   00000018 R 02
 					.ENDIF
 					; x upperbound
 					; mov ax,xyBound.x
 					.IF snake[0].pos.X >= 60h
- 000001C6  66| 83 2D				sub snake[0].pos.X, 2
+ 000001E8  66| 83 2D				sub snake[0].pos.X, 2
 	   00000018 R 02
 					.ENDIF
 					; y lowerbound
 					.IF snake[0].pos.Y == 0h
- 000001D8  66| 83 05				add snake[0].pos.Y, 1
+ 000001FA  66| 83 05				add snake[0].pos.Y, 1
 	   0000001A R 01
 					.ENDIF
 					; y upperbound
 					.IF snake[0].pos.Y == 1Ah
- 000001EA  66| 83 2D				sub snake[0].pos.Y, 1
+ 0000020C  66| 83 2D				sub snake[0].pos.Y, 1
 	   0000001A R 01
 					.ENDIF
 					
- 000001F2  E9 FFFFFE15			jmp MAIN_LOOP 
+ 00000214  E9 FFFFFDF3			jmp MAIN_LOOP 
 					 
- 000001F7			 END_FUNC: 
- 000001F7  E8 00000000 E		call WaitMsg 
+ 00000219			 END_FUNC: 
+ 00000219  E8 00000000 E		call WaitMsg 
 					exit
- 00000203			main ENDP 
+ 00000225			main ENDP 
 				END main
-Microsoft (R) Macro Assembler Version 6.11		    11/24/25 17:11:50
+Microsoft (R) Macro Assembler Version 6.11		    11/24/25 18:45:10
 src\main.asm						     Symbols 2 - 1
 
 
@@ -393,8 +408,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000087 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000203 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000092 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000225 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -517,12 +532,14 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000203 Public STDCALL
+start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000225 Public STDCALL
   MAIN_LOOP  . . . . . . . . . .	L Near	 0000000C _TEXT	
   PLOT_SNAKE . . . . . . . . . .	L Near	 0000001D _TEXT	
-  UPDATE_POS . . . . . . . . . .	L Near	 000000D9 _TEXT	
-  DETECT_BORDER  . . . . . . . .	L Near	 000001AA _TEXT	
-  END_FUNC . . . . . . . . . . .	L Near	 000001F7 _TEXT	
+  PLOT_APPLE . . . . . . . . . .	L Near	 0000005A _TEXT	
+  UPDATE_POS . . . . . . . . . .	L Near	 000000EA _TEXT	
+  APPLE_EATEN  . . . . . . . . .	L Near	 00000161 _TEXT	
+  DETECT_BORDER  . . . . . . . .	L Near	 000001CC _TEXT	
+  END_FUNC . . . . . . . . . . .	L Near	 00000219 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -766,6 +783,7 @@ WS_THICKFRAME  . . . . . . . . .	Number	 00040000h
 WS_VISIBLE . . . . . . . . . . .	Number	 10000000h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+appleLen . . . . . . . . . . . .	Byte	 00000091 _DATA	
 apples . . . . . . . . . . . . .	APPLE	 00000082 _DATA	
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   

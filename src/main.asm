@@ -20,7 +20,8 @@ cnt DWORD ?
 snake BLOCK <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
 snakeLen BYTE 4
 lastPos BLOCK <>
-apples APPLE <<20, 20>,0>
+apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
+appleLen BYTE LENGTHOF apples 
 
 .CODE 
 main PROC 
@@ -47,9 +48,12 @@ PLOT_SNAKE:
 	loop PLOT_SNAKE
 
 ; plot apple
-    .IF apples.eaten == 0 
+    movzx ecx, appleLen 
+    mov esi, 0
+PLOT_APPLE:
+    .IF apples[esi].eaten == 0 
         pushad
-        INVOKE SetConsoleCursorPosition, consoleHandle, apples.pos 
+        INVOKE SetConsoleCursorPosition, consoleHandle, apples[esi].pos 
         INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
         INVOKE WriteConsoleW, 
             consoleHandle, 
@@ -60,6 +64,8 @@ PLOT_SNAKE:
         INVOKE SetConsoleTextAttribute, consoleHandle, 07h
         popad
     .ENDIF
+    add esi, TYPE apples
+    loop PLOT_APPLE
 
     ; Detect input char
 	call ReadChar ; ReadKey to continue without waiting user input 
@@ -122,12 +128,15 @@ UPDATE_POS:
     loop UPDATE_POS
 
     ; check apple
-    .IF apples.eaten == 0
+    movzx ecx, appleLen
+    mov esi, 0
+APPLE_EATEN:
+    .IF apples[esi].eaten == 0
         mov ax, snake[0].pos.X
-        cmp ax, apples.pos.X
+        cmp ax, apples[esi].pos.X
         jne DETECT_BORDER
         mov ax, snake[0].pos.Y
-        cmp ax, apples.pos.Y
+        cmp ax, apples[esi].pos.Y
         jne DETECT_BORDER 
 
         movzx eax, snakeLen
@@ -139,8 +148,10 @@ UPDATE_POS:
         mov bl, lastPos.dir
         mov snake[eax].dir, bl    
         inc snakeLen
-        mov apples.eaten, 1
+        mov apples[esi].eaten, 1
     .ENDIF
+    add esi, TYPE apples 
+    loop APPLE_EATEN
 
 DETECT_BORDER:    
 	; Detect border
