@@ -17,7 +17,10 @@ colorMask DWORD 3
 rows BYTE 10 
 cols BYTE 10 
 cnt DWORD ? 
-snake BLOCK < <8, 1>, 0 >, < <6, 1>, 0 >, < <4, 1>, 0 >, < <2, 1>, 0 >
+snake BLOCK <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
+snakeLen BYTE 4
+lastPos BLOCK <>
+apples APPLE <<20, 20>,0>
 
 .CODE 
 main PROC 
@@ -26,7 +29,9 @@ main PROC
 
 MAIN_LOOP: 
 	call ClrScr 
-	mov ecx, LENGTHOF snake 
+
+; plot snake
+	movzx ecx, snakeLen 
 	mov esi, 0 
 PLOT_SNAKE: 
 	pushad
@@ -40,6 +45,21 @@ PLOT_SNAKE:
 	popad
 	add esi, TYPE snake 
 	loop PLOT_SNAKE
+
+; plot apple
+    .IF apples.eaten == 0 
+        pushad
+        INVOKE SetConsoleCursorPosition, consoleHandle, apples.pos 
+        INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
+        INVOKE WriteConsoleW, 
+            consoleHandle, 
+            ADDR fullBlock, 
+            2, 
+            ADDR cnt, 
+            0 
+        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
+        popad
+    .ENDIF
 
     ; Detect input char
 	call ReadChar ; ReadKey to continue without waiting user input 
@@ -67,9 +87,16 @@ PLOT_SNAKE:
 		jmp END_FUNC 
 	.ENDIF 
 
-    mov ecx, LENGTHOF snake 
+    movzx ecx, snakeLen 
     mov esi, 0
 UPDATE_POS:
+    mov ax, WORD PTR snake[esi].pos.X
+    mov WORD PTR lastPos.pos.X, ax 
+    mov ax, WORD PTR snake[esi].pos.Y
+    mov WORD PTR lastPos.pos.Y, ax
+    mov al, BYTE PTR snake[esi].dir
+    mov BYTE PTR lastPos.dir, al
+
     ; right
     .IF bl == 0
         add snake[esi].pos.X, 2 
@@ -93,7 +120,29 @@ UPDATE_POS:
     add esi, TYPE snake 
 
     loop UPDATE_POS
-	
+
+    ; check apple
+    .IF apples.eaten == 0
+        mov ax, snake[0].pos.X
+        cmp ax, apples.pos.X
+        jne DETECT_BORDER
+        mov ax, snake[0].pos.Y
+        cmp ax, apples.pos.Y
+        jne DETECT_BORDER 
+
+        movzx eax, snakeLen
+        imul eax, TYPE snake
+        mov bx, lastPos.pos.X
+        mov snake[eax].pos.X, bx
+        mov bx, lastPos.pos.Y
+        mov snake[eax].pos.Y, bx
+        mov bl, lastPos.dir
+        mov snake[eax].dir, bl    
+        inc snakeLen
+        mov apples.eaten, 1
+    .ENDIF
+
+DETECT_BORDER:    
 	; Detect border
 	; If over the border then stay at the original position
 	; x lowerbound
