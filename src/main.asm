@@ -1,73 +1,183 @@
 INCLUDE Irvine32.inc
-INCLUDE Macros.inc
-INCLUDE GraphWin.inc
-INCLUDE DataFormat.inc
+INCLUDE Macros.inc 
+INCLUDE GraphWin.inc 
+INCLUDE DataFormat.inc 
 
-main EQU start@0
+main EQU start@0 
 
-GetStdHandle  PROTO :DWORD
-WriteConsoleW PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD
-ExitProcess   PROTO :DWORD
+GetStdHandle PROTO :DWORD 
+WriteConsoleW PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD 
+ExitProcess PROTO :DWORD 
 
-.DATA
-    consoleHandle DWORD ?
+.DATA 
+consoleHandle DWORD ? 
+fullBlock WORD 2 dup(2588h), 0 ; '█' (full block), null-terminated
+colors BYTE 12,10,9,14 ;light red, light green, light blue, yellow 
+colorMask DWORD 3 
+rows BYTE 10 
+cols BYTE 10 
+cnt DWORD ? 
+snake BLOCK <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
+snakeLen BYTE 4
+lastPos BLOCK <>
+apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
+appleLen BYTE LENGTHOF apples 
 
-    fullBlock     WORD 2 dup(2588h), 0      ; '█' (full block), null-terminated
-    colors        BYTE 12,10,9,14  ;light red, light green, light blue, yellow
-    colorMask     DWORD 3
-    rows          BYTE 10
-    cols          BYTE 10
-    cnt           DWORD ?
+.CODE 
+main PROC 
+	INVOKE GetStdHandle, STD_OUTPUT_HANDLE 
+	mov consoleHandle, eax 
 
-    snake COORD <10, 10>
+MAIN_LOOP: 
+	call ClrScr 
 
-.CODE
-main PROC
-    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
-    mov consoleHandle, eax
+; plot snake
+	movzx ecx, snakeLen 
+	mov esi, 0 
+PLOT_SNAKE: 
+	pushad
+	INVOKE SetConsoleCursorPosition, consoleHandle, snake[esi].pos 
+	INVOKE WriteConsoleW, 
+		consoleHandle, 
+		ADDR fullBlock, 
+		2, 
+		ADDR cnt, 
+		0 
+	popad
+	add esi, TYPE snake 
+	loop PLOT_SNAKE
 
-MAIN_LOOP:
-    call ReadChar
+; plot apple
+    movzx ecx, appleLen 
+    mov esi, 0
+PLOT_APPLE:
+    .IF apples[esi].eaten == 0 
+        pushad
+        INVOKE SetConsoleCursorPosition, consoleHandle, apples[esi].pos 
+        INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
+        INVOKE WriteConsoleW, 
+            consoleHandle, 
+            ADDR fullBlock, 
+            2, 
+            ADDR cnt, 
+            0 
+        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
+        popad
+    .ENDIF
+    add esi, TYPE apples
+    loop PLOT_APPLE
 
     ; Detect input char
-    ; UP ARROW, or W
-    .IF ax == 1177h		
-        sub snake.y, 1
-        call ClrScr
-    .ENDIF
-    ; DOWN ARROW, or S
-    .IF ax == 1F73h
-        add snake.y, 1
-        call ClrScr
-    .ENDIF
-    ; LEFT ARROW, or A
-    .IF ax == 1E61h
-        sub snake.x, 2
-        call ClrScr
-    .ENDIF
-    ; RIGHT ARROW, or D
-    .IF ax == 2064h
-        add snake.x, 2
-        call ClrScr
-    .ENDIF
-    ; ESC
-    .IF ax == 011Bh
-        jmp END_FUNC
-    .ENDIF
+	call ReadChar ; ReadKey to continue without waiting user input 
 
-    INVOKE SetConsoleCursorPosition, consoleHandle, snake
-    invoke WriteConsoleW, 
-        consoleHandle,
-        ADDR fullBlock,
-        LENGTHOF fullBlock,
-        ADDR cnt,
-        0
+    ; store new direction in bl
 
+	; UP ARROW, or W 
+	.IF ax == 1177h
+	    mov bl, 1	
+	.ENDIF 
+	; DOWN ARROW, or S 
+	.IF ax == 1F73h
+	    mov bl, 3	
+	.ENDIF 
+	; LEFT ARROW, or A 
+	.IF ax == 1E61h 
+	    mov bl, 2	
+	.ENDIF 
+    ; RIGHT ARROW, or D 
+	.IF ax == 2064h 
+	    mov bl, 0	
+	.ENDIF 
+	; ESC 
+	.IF ax == 011Bh 
+		jmp END_FUNC 
+	.ENDIF 
 
-    jmp MAIN_LOOP
+    movzx ecx, snakeLen 
+    mov esi, 0
+UPDATE_POS:
+    mov ax, WORD PTR snake[esi].pos.X
+    mov WORD PTR lastPos.pos.X, ax 
+    mov ax, WORD PTR snake[esi].pos.Y
+    mov WORD PTR lastPos.pos.Y, ax
+    mov al, BYTE PTR snake[esi].dir
+    mov BYTE PTR lastPos.dir, al
 
-END_FUNC:
-    call WaitMsg   
-    exit
-main ENDP
+    ; right
+    .IF bl == 0
+        add snake[esi].pos.X, 2 
+    .ENDIF
+    ; top
+    .IF bl == 1
+        add snake[esi].pos.Y, -1
+    .ENDIF
+    ; left
+    .IF bl == 2
+        add snake[esi].pos.X, -2
+    .ENDIF
+    ; down
+    .IF bl == 3
+        add snake[esi].pos.Y, 1 
+    .ENDIF
+    
+    mov bh, snake[esi].dir
+    mov snake[esi].dir, bl
+    mov bl, bh
+    add esi, TYPE snake 
+
+    loop UPDATE_POS
+
+    ; check apple
+    movzx ecx, appleLen
+    mov esi, 0
+APPLE_EATEN:
+    .IF apples[esi].eaten == 0
+        mov ax, snake[0].pos.X
+        cmp ax, apples[esi].pos.X
+        jne DETECT_BORDER
+        mov ax, snake[0].pos.Y
+        cmp ax, apples[esi].pos.Y
+        jne DETECT_BORDER 
+
+        movzx eax, snakeLen
+        imul eax, TYPE snake
+        mov bx, lastPos.pos.X
+        mov snake[eax].pos.X, bx
+        mov bx, lastPos.pos.Y
+        mov snake[eax].pos.Y, bx
+        mov bl, lastPos.dir
+        mov snake[eax].dir, bl    
+        inc snakeLen
+        mov apples[esi].eaten, 1
+    .ENDIF
+    add esi, TYPE apples 
+    loop APPLE_EATEN
+
+DETECT_BORDER:    
+	; Detect border
+	; If over the border then stay at the original position
+	; x lowerbound
+	.IF snake[0].pos.X <= 0h
+		add snake[0].pos.X, 2
+	.ENDIF
+	; x upperbound
+	; mov ax,xyBound.x
+	.IF snake[0].pos.X >= 60h
+		sub snake[0].pos.X, 2
+	.ENDIF
+	; y lowerbound
+	.IF snake[0].pos.Y == 0h
+		add snake[0].pos.Y, 1
+	.ENDIF
+	; y upperbound
+	.IF snake[0].pos.Y == 1Ah
+		sub snake[0].pos.Y, 1
+	.ENDIF
+	
+	jmp MAIN_LOOP 
+	 
+ END_FUNC: 
+	call WaitMsg 
+	exit
+main ENDP 
 END main
