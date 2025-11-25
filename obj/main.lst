@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    11/24/25 22:19:45
+Microsoft (R) Macro Assembler Version 6.11		    11/25/25 11:19:04
 src\main.asm						     Page 1 - 1
 
 
@@ -171,7 +171,7 @@ src\main.asm						     Page 1 - 1
 					.ENDIF 
 					; ESC 
 					.IF ax == 011Bh 
- 00000130  E9 000001D4				jmp END_FUNC 
+ 00000130  E9 000001B4				jmp END_FUNC 
 					.ENDIF 
 
 				; check if the direction is valid
@@ -183,7 +183,7 @@ src\main.asm						     Page 1 - 1
  00000140  24 01		    and al, 1
  00000142  80 E7 01		    and bh, 1
  00000145  38 F8		    cmp al, bh
- 00000147  0F 84 000000F7	    je NO_UPDATE
+ 00000147  0F 84 0000011F	    je NO_UPDATE
 
 				; check if the destination is empty
  0000014D			SELF_INTERSECTING:
@@ -220,7 +220,7 @@ src\main.asm						     Page 1 - 1
 	   0000001A R
  0000019C  75 05		    jne CONTINUE_SELF 
 
- 0000019E  E9 000000A1		    jmp NO_UPDATE
+ 0000019E  E9 000000C9		    jmp NO_UPDATE
 
  000001A3			CONTINUE_SELF:
  000001A3  83 C6 05		    add esi, TYPE snake
@@ -233,135 +233,124 @@ src\main.asm						     Page 1 - 1
  000001B4			OBSTACLE_LOOP:
  000001B4  66| 3B 86		    cmp ax, obstacles[esi].pos.X
 	   00000097 R
- 000001BB  75 0B		    jne CONTINUE_OBS
+ 000001BB  75 0E		    jne CONTINUE_OBS
 
  000001BD  66| 3B 96		    cmp dx, obstacles[esi].pos.Y
 	   00000099 R
- 000001C4  75 02		    jne CONTINUE_OBS
+ 000001C4  75 05		    jne CONTINUE_OBS
 
- 000001C6  EB 7C		    jmp NO_UPDATE
+ 000001C6  E9 000000A1		    jmp NO_UPDATE
 
- 000001C8			CONTINUE_OBS:
- 000001C8  83 C6 04		    add esi, TYPE obstacles
- 000001CB  E2 E7		    loop OBSTACLE_LOOP
+ 000001CB			CONTINUE_OBS:
+ 000001CB  83 C6 04		    add esi, TYPE obstacles
+ 000001CE  E2 E4		    loop OBSTACLE_LOOP
 
- 000001CD			UPDATE_POS:
- 000001CD  0F B6 0D		    movzx ecx, snakeLen 
+ 000001D0			CHECK_BORDER:
+				    .IF ax <= 0h
+ 000001D6  E9 00000091			    jmp NO_UPDATE	
+					.ENDIF
+					.IF ax >= 78h
+ 000001E1  E9 00000086			    jmp NO_UPDATE	
+					.ENDIF
+					.IF dx == 0h
+ 000001EB  EB 7F			    jmp NO_UPDATE	
+					.ENDIF
+					.IF dx == 1Dh
+ 000001F3  EB 77			    jmp NO_UPDATE	
+					.ENDIF
+
+ 000001F5			UPDATE_POS:
+ 000001F5  0F B6 0D		    movzx ecx, snakeLen 
 	   00000081 R
- 000001D4  BE 00000000		    mov esi, 0
- 000001D9			UPDATE_LOOP:
- 000001D9  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.X
+ 000001FC  BE 00000000		    mov esi, 0
+ 00000201			UPDATE_LOOP:
+ 00000201  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.X
 	   00000018 R
- 000001E0  66| A3		    mov WORD PTR lastPos.pos.X, ax 
+ 00000208  66| A3		    mov WORD PTR lastPos.pos.X, ax 
 	   00000082 R
- 000001E6  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.Y
+ 0000020E  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.Y
 	   0000001A R
- 000001ED  66| A3		    mov WORD PTR lastPos.pos.Y, ax
+ 00000215  66| A3		    mov WORD PTR lastPos.pos.Y, ax
 	   00000084 R
- 000001F3  8A 86 0000001C R	    mov al, BYTE PTR snake[esi].dir
- 000001F9  A2 00000086 R	    mov BYTE PTR lastPos.dir, al
+ 0000021B  8A 86 0000001C R	    mov al, BYTE PTR snake[esi].dir
+ 00000221  A2 00000086 R	    mov BYTE PTR lastPos.dir, al
 
 				    ; right
 				    .IF bl == 0
- 00000202  66| 83 86		        add snake[esi].pos.X, 2 
+ 0000022A  66| 83 86		        add snake[esi].pos.X, 2 
 	   00000018 R 02
 				    .ENDIF
 				    ; top
 				    .IF bl == 1
- 0000020F  66| 83 86		        add snake[esi].pos.Y, -1
+ 00000237  66| 83 86		        add snake[esi].pos.Y, -1
 	   0000001A R FF
 				    .ENDIF
 				    ; left
 				    .IF bl == 2
- 0000021C  66| 83 86		        add snake[esi].pos.X, -2
+ 00000244  66| 83 86		        add snake[esi].pos.X, -2
 	   00000018 R FE
 				    .ENDIF
 				    ; down
 				    .IF bl == 3
- 00000229  66| 83 86		        add snake[esi].pos.Y, 1 
+ 00000251  66| 83 86		        add snake[esi].pos.Y, 1 
 	   0000001A R 01
 				    .ENDIF
 				    
- 00000231  8A BE 0000001C R	    mov bh, snake[esi].dir
- 00000237  88 9E 0000001C R	    mov snake[esi].dir, bl
- 0000023D  8A DF		    mov bl, bh
- 0000023F  83 C6 05		    add esi, TYPE snake 
+ 00000259  8A BE 0000001C R	    mov bh, snake[esi].dir
+ 0000025F  88 9E 0000001C R	    mov snake[esi].dir, bl
+ 00000265  8A DF		    mov bl, bh
+ 00000267  83 C6 05		    add esi, TYPE snake 
 
- 00000242  E2 95		    loop UPDATE_LOOP
+ 0000026A  E2 95		    loop UPDATE_LOOP
 
- 00000244			NO_UPDATE:   
+ 0000026C			NO_UPDATE:   
 				    ; check apple
- 00000244  0F B6 0D		    movzx ecx, appleLen
+ 0000026C  0F B6 0D		    movzx ecx, appleLen
 	   00000096 R
- 0000024B  BE 00000000		    mov esi, 0
- 00000250			APPLE_EATEN:
- 00000250  8A 86 0000008B R	    mov al, apples[esi].eaten
+ 00000273  BE 00000000		    mov esi, 0
+ 00000278			APPLE_EATEN:
+ 00000278  8A 86 0000008B R	    mov al, apples[esi].eaten
 				    .IF al == 0
- 0000025A  66| A1		        mov ax, snake[0].pos.X
+ 00000282  66| A1		        mov ax, snake[0].pos.X
 	   00000018 R
- 00000260  66| 3B 86		        cmp ax, apples[esi].pos.X
+ 00000288  66| 3B 86		        cmp ax, apples[esi].pos.X
 	   00000087 R
- 00000267  75 4E		        jne CONTINUE_APPLE
- 00000269  66| A1		        mov ax, snake[0].pos.Y
+ 0000028F  75 4E		        jne CONTINUE_APPLE
+ 00000291  66| A1		        mov ax, snake[0].pos.Y
 	   0000001A R
- 0000026F  66| 3B 86		        cmp ax, apples[esi].pos.Y
+ 00000297  66| 3B 86		        cmp ax, apples[esi].pos.Y
 	   00000089 R
- 00000276  75 3F		        jne CONTINUE_APPLE
+ 0000029E  75 3F		        jne CONTINUE_APPLE
 
- 00000278  0F B6 05		        movzx eax, snakeLen
+ 000002A0  0F B6 05		        movzx eax, snakeLen
 	   00000081 R
- 0000027F  6B C0 05		        imul eax, TYPE snake
- 00000282  66| 8B 1D		        mov bx, lastPos.pos.X
+ 000002A7  6B C0 05		        imul eax, TYPE snake
+ 000002AA  66| 8B 1D		        mov bx, lastPos.pos.X
 	   00000082 R
- 00000289  66| 89 98		        mov snake[eax].pos.X, bx
+ 000002B1  66| 89 98		        mov snake[eax].pos.X, bx
 	   00000018 R
- 00000290  66| 8B 1D		        mov bx, lastPos.pos.Y
+ 000002B8  66| 8B 1D		        mov bx, lastPos.pos.Y
 	   00000084 R
- 00000297  66| 89 98		        mov snake[eax].pos.Y, bx
+ 000002BF  66| 89 98		        mov snake[eax].pos.Y, bx
 	   0000001A R
- 0000029E  8A 1D 00000086 R	        mov bl, lastPos.dir
- 000002A4  88 98 0000001C R	        mov snake[eax].dir, bl    
- 000002AA  FE 05 00000081 R	        inc snakeLen
- 000002B0  C6 86 0000008B R	        mov apples[esi].eaten, 1
+ 000002C6  8A 1D 00000086 R	        mov bl, lastPos.dir
+ 000002CC  88 98 0000001C R	        mov snake[eax].dir, bl    
+ 000002D2  FE 05 00000081 R	        inc snakeLen
+ 000002D8  C6 86 0000008B R	        mov apples[esi].eaten, 1
 	   01
 				    .ENDIF
- 000002B7			CONTINUE_APPLE:
- 000002B7  83 C6 05		    add esi, TYPE apples 
- 000002BA  E2 94		    loop APPLE_EATEN
+ 000002DF			CONTINUE_APPLE:
+ 000002DF  83 C6 05		    add esi, TYPE apples 
+ 000002E2  E2 94		    loop APPLE_EATEN
 
- 000002BC			DETECT_BORDER:    
-					; Detect border
-					; If over the border then stay at the original position
-					; x lowerbound
-					.IF snake[0].pos.X <= 0h
- 000002C6  66| 83 05				add snake[0].pos.X, 2
-	   00000018 R 02
-					.ENDIF
-					; x upperbound
-					; mov ax,xyBound.x
-					.IF snake[0].pos.X >= 60h
- 000002D8  66| 83 2D				sub snake[0].pos.X, 2
-	   00000018 R 02
-					.ENDIF
-					; y lowerbound
-					.IF snake[0].pos.Y == 0h
- 000002EA  66| 83 05				add snake[0].pos.Y, 1
-	   0000001A R 01
-					.ENDIF
-					; y upperbound
-					.IF snake[0].pos.Y == 1Ah
- 000002FC  66| 83 2D				sub snake[0].pos.Y, 1
-	   0000001A R 01
-					.ENDIF
-					
- 00000304  E9 FFFFFD03			jmp MAIN_LOOP 
+ 000002E4  E9 FFFFFD23			jmp MAIN_LOOP 
 					 
- 00000309			 END_FUNC: 
- 00000309  E8 00000000 E		call WaitMsg 
+ 000002E9			 END_FUNC: 
+ 000002E9  E8 00000000 E		call WaitMsg 
 					exit
- 00000315			main ENDP 
+ 000002F5			main ENDP 
 				END main
-Microsoft (R) Macro Assembler Version 6.11		    11/24/25 22:19:45
+Microsoft (R) Macro Assembler Version 6.11		    11/25/25 11:19:04
 src\main.asm						     Symbols 2 - 1
 
 
@@ -508,7 +497,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 000000A0 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000315 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000002F5 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -631,7 +620,7 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000315 Public STDCALL
+start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000002F5 Public STDCALL
   MAIN_LOOP  . . . . . . . . . .	L Near	 0000000C _TEXT	
   PLOT_SNAKE . . . . . . . . . .	L Near	 0000001D _TEXT	
   PLOT_APPLE . . . . . . . . . .	L Near	 0000005A _TEXT	
@@ -642,14 +631,14 @@ start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000315 Public 
   CONTINUE_SELF  . . . . . . . .	L Near	 000001A3 _TEXT	
   OBSTACLE_COLLISION . . . . . .	L Near	 000001A8 _TEXT	
   OBSTACLE_LOOP  . . . . . . . .	L Near	 000001B4 _TEXT	
-  CONTINUE_OBS . . . . . . . . .	L Near	 000001C8 _TEXT	
-  UPDATE_POS . . . . . . . . . .	L Near	 000001CD _TEXT	
-  UPDATE_LOOP  . . . . . . . . .	L Near	 000001D9 _TEXT	
-  NO_UPDATE  . . . . . . . . . .	L Near	 00000244 _TEXT	
-  APPLE_EATEN  . . . . . . . . .	L Near	 00000250 _TEXT	
-  CONTINUE_APPLE . . . . . . . .	L Near	 000002B7 _TEXT	
-  DETECT_BORDER  . . . . . . . .	L Near	 000002BC _TEXT	
-  END_FUNC . . . . . . . . . . .	L Near	 00000309 _TEXT	
+  CONTINUE_OBS . . . . . . . . .	L Near	 000001CB _TEXT	
+  CHECK_BORDER . . . . . . . . .	L Near	 000001D0 _TEXT	
+  UPDATE_POS . . . . . . . . . .	L Near	 000001F5 _TEXT	
+  UPDATE_LOOP  . . . . . . . . .	L Near	 00000201 _TEXT	
+  NO_UPDATE  . . . . . . . . . .	L Near	 0000026C _TEXT	
+  APPLE_EATEN  . . . . . . . . .	L Near	 00000278 _TEXT	
+  CONTINUE_APPLE . . . . . . . .	L Near	 000002DF _TEXT	
+  END_FUNC . . . . . . . . . . .	L Near	 000002E9 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 

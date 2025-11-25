@@ -177,6 +177,20 @@ CONTINUE_OBS:
     add esi, TYPE obstacles
     loop OBSTACLE_LOOP
 
+CHECK_BORDER:
+    .IF ax <= 0h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF ax >= 78h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF dx == 0h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF dx == 1Dh
+	    jmp NO_UPDATE	
+	.ENDIF
+
 UPDATE_POS:
     movzx ecx, snakeLen 
     mov esi, 0
@@ -241,27 +255,6 @@ CONTINUE_APPLE:
     add esi, TYPE apples 
     loop APPLE_EATEN
 
-DETECT_BORDER:    
-	; Detect border
-	; If over the border then stay at the original position
-	; x lowerbound
-	.IF snake[0].pos.X <= 0h
-		add snake[0].pos.X, 2
-	.ENDIF
-	; x upperbound
-	; mov ax,xyBound.x
-	.IF snake[0].pos.X >= 60h
-		sub snake[0].pos.X, 2
-	.ENDIF
-	; y lowerbound
-	.IF snake[0].pos.Y == 0h
-		add snake[0].pos.Y, 1
-	.ENDIF
-	; y upperbound
-	.IF snake[0].pos.Y == 1Ah
-		sub snake[0].pos.Y, 1
-	.ENDIF
-	
 	jmp MAIN_LOOP 
 	 
  END_FUNC: 
