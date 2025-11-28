@@ -2,6 +2,7 @@ INCLUDE Irvine32.inc
 INCLUDE Macros.inc 
 INCLUDE GraphWin.inc 
 INCLUDE DataFormat.inc 
+INCLUDE Plotting.inc
 
 main EQU start@0 
 
@@ -16,14 +17,15 @@ colors BYTE 12,10,9,14 ;light red, light green, light blue, yellow
 colorMask DWORD 3 
 rows BYTE 10 
 cols BYTE 10 
-cnt DWORD ? 
+written DWORD ? 
 snake BLOCK <<10, 1>,0>, <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
-snakeLen BYTE 5
+snakeLen DWORD 5
 lastPos BLOCK <>
 apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
-appleLen BYTE LENGTHOF apples 
-obstacles OBSTACLE <<30, 10>>, <<40, 10>>
-obstacleLen BYTE LENGTHOF obstacles
+appleLen DWORD LENGTHOF apples 
+obstacles OBSTACLE <<10, 10>>, <<20, 10>>, <<30, 10>>, <<40, 10>>
+obstacleLen DWORD LENGTHOF obstacles
+goal COORD <42, 9>
 
 .CODE 
 main PROC 
@@ -34,62 +36,20 @@ MAIN_LOOP:
 	call ClrScr 
 
 ; plot snake
-	movzx ecx, snakeLen 
-	mov esi, 0 
-PLOT_SNAKE: 
-	pushad
-	INVOKE SetConsoleCursorPosition, consoleHandle, snake[esi].pos 
-	INVOKE WriteConsoleW, 
-		consoleHandle, 
-		ADDR fullBlock, 
-		2, 
-		ADDR cnt, 
-		0 
-	popad
-	add esi, TYPE snake 
-	loop PLOT_SNAKE
+    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
 
 ; plot apple
-    movzx ecx, appleLen 
-    mov esi, 0
-PLOT_APPLE:
-    .IF apples[esi].eaten == 0 
-        pushad
-        INVOKE SetConsoleCursorPosition, consoleHandle, apples[esi].pos 
-        INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
-        INVOKE WriteConsoleW, 
-            consoleHandle, 
-            ADDR fullBlock, 
-            2, 
-            ADDR cnt, 
-            0 
-        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
-        popad
-    .ENDIF
-    add esi, TYPE apples
-    loop PLOT_APPLE
+    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
 
 ; plot obstacle    
-    movzx ecx, obstacleLen
-    mov esi, 0
-PLOT_OBSTACLE:
-    pushad
-    INVOKE SetConsoleCursorPosition, consoleHandle, obstacles[esi].pos
-    INVOKE SetConsoleTextAttribute, consoleHandle, 08h
-    INVOKE WriteConsoleW,
-        consoleHandle,
-        ADDR fullBlock,
-        2,
-        ADDR cnt,
-        0
-    INVOKE SetConsoleTextAttribute, consoleHandle, 07h
-    popad
-    add esi, TYPE obstacles
-    loop PLOT_OBSTACLE
+    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
 
 INPUT:
     ; Detect input char
-	call ReadChar ; ReadKey to continue without waiting user input 
+	call ReadChar 
+    ; call ReadKey
+
+    ; mov ebx, 4 ; clear direction 
 
     ; store new direction in bl
 
@@ -127,7 +87,7 @@ INPUT:
 
 ; check if the destination is empty
 SELF_INTERSECTING:
-    movzx ecx, snakeLen
+    mov ecx, snakeLen
     add ecx, -2
     mov esi, TYPE snake 
 
@@ -162,7 +122,7 @@ CONTINUE_SELF:
     loop SELF_INTERSECTING_LOOP
 
 OBSTACLE_COLLISION:
-    movzx ecx, obstacleLen
+    mov ecx, obstacleLen
     mov esi, 0 
 OBSTACLE_LOOP:
     cmp ax, obstacles[esi].pos.X
@@ -177,8 +137,22 @@ CONTINUE_OBS:
     add esi, TYPE obstacles
     loop OBSTACLE_LOOP
 
+CHECK_BORDER:
+    .IF ax <= 0h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF ax >= 78h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF dx == 0h
+	    jmp NO_UPDATE	
+	.ENDIF
+	.IF dx == 1Dh
+	    jmp NO_UPDATE	
+	.ENDIF
+
 UPDATE_POS:
-    movzx ecx, snakeLen 
+    mov ecx, snakeLen 
     mov esi, 0
 UPDATE_LOOP:
     mov ax, WORD PTR snake[esi].pos.X
@@ -214,7 +188,7 @@ UPDATE_LOOP:
 
 NO_UPDATE:   
     ; check apple
-    movzx ecx, appleLen
+    mov ecx, appleLen
     mov esi, 0
 APPLE_EATEN:
     mov al, apples[esi].eaten
@@ -226,7 +200,7 @@ APPLE_EATEN:
         cmp ax, apples[esi].pos.Y
         jne CONTINUE_APPLE
 
-        movzx eax, snakeLen
+        mov eax, snakeLen
         imul eax, TYPE snake
         mov bx, lastPos.pos.X
         mov snake[eax].pos.X, bx
@@ -241,30 +215,91 @@ CONTINUE_APPLE:
     add esi, TYPE apples 
     loop APPLE_EATEN
 
-DETECT_BORDER:    
-	; Detect border
-	; If over the border then stay at the original position
-	; x lowerbound
-	.IF snake[0].pos.X <= 0h
-		add snake[0].pos.X, 2
-	.ENDIF
-	; x upperbound
-	; mov ax,xyBound.x
-	.IF snake[0].pos.X >= 60h
-		sub snake[0].pos.X, 2
-	.ENDIF
-	; y lowerbound
-	.IF snake[0].pos.Y == 0h
-		add snake[0].pos.Y, 1
-	.ENDIF
-	; y upperbound
-	.IF snake[0].pos.Y == 1Ah
-		sub snake[0].pos.Y, 1
-	.ENDIF
-	
+;    push 100
+;    call Sleep
+
+; TODO
+; check if supported by apples or obstacles 
+CHECK_SUPPORTED:
+    call ClrScr 
+
+; plot snake
+    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
+
+; plot apple
+    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
+
+; plot obstacle    
+    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
+
+    mov ecx, snakeLen
+    mov esi, 0
+LOOP_SUPP:
+    mov ax, snake[esi].pos.X
+    mov bx, snake[esi].pos.Y
+    inc bx
+    push ecx
+    push esi
+
+    mov ecx, obstacleLen
+    mov esi, 0
+SUPP_OBST:
+    cmp ax, obstacles[esi].pos.X
+    jne CONT_OBST
+    cmp bx, obstacles[esi].pos.Y
+    jne CONT_OBST
+
+    jmp SUPPORTED
+
+CONT_OBST:
+    add esi, TYPE obstacles
+    loop SUPP_OBST
+
+    mov ecx, appleLen 
+    mov esi, 0
+SUPP_APPLE:
+    .IF apples[esi].eaten == 0
+        cmp ax, apples[esi].pos.X
+        jne CONT_APPLE_SUPP
+        cmp bx, apples[esi].pos.Y
+        jne CONT_APPLE_SUPP
+
+        jmp SUPPORTED
+    .ENDIF
+
+CONT_APPLE_SUPP:
+    add esi, TYPE apples 
+    loop SUPP_APPLE
+
+CONT_SUPP:
+    pop esi
+    pop ecx
+    add esi, TYPE snake
+    loop LOOP_SUPP
+    
+; if not supported, then apply gravity tell supported or full into the void (Y > threshold)
+GRAVITY:
+    mov ecx, snakeLen
+    mov esi, 0 
+LOOP_GRAVITY:
+    inc snake[esi].pos.Y    
+    .IF snake[esi].pos.Y >= 1Ch
+        call ClrScr
+        jmp END_FUNC
+    .ENDIF
+
+    add esi, TYPE snake
+    loop LOOP_GRAVITY
+
+    push 100
+    call Sleep
+
+    jmp CHECK_SUPPORTED
+
+SUPPORTED:
 	jmp MAIN_LOOP 
 	 
- END_FUNC: 
+END_FUNC: 
 	call WaitMsg 
 	exit
 main ENDP 
