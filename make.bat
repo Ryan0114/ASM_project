@@ -40,14 +40,15 @@ for %%f in (%SRC%\*.asm) do (
 
 echo.
 echo ===== Step 2: Linking all modules =====
-
+	
 "%TOOLS%\link.exe" /INCREMENTAL:no /debug /subsystem:console ^
-    /entry:start ^
-    /out:"%BIN%\%ENTRY%.exe" ^
-    "%OBJ%\main.obj" ^
-    "%LIB%\kernel32.lib" ^
-    "%LIB%\user32.lib" ^
-    "%LIB%\irvine32.lib"
+	/entry:start ^
+	/out:"%BIN%\%ENTRY%.exe" ^
+	"%OBJ%\*.obj" ^
+	"%LIB%\kernel32.lib" ^
+	"%LIB%\user32.lib" ^
+	"%LIB%\irvine32.lib"
+
 
 if errorlevel 1 goto fail
 

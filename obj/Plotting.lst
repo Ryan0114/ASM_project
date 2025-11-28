@@ -1,5 +1,5 @@
 Microsoft (R) Macro Assembler Version 6.11		    11/28/25 14:24:13
-src\main.asm						     Page 1 - 1
+src\Plotting.asm					     Page 1 - 1
 
 
 				INCLUDE Irvine32.inc
@@ -20,15 +20,20 @@ src\main.asm						     Page 1 - 1
 			      C .NOLIST
 			      C .LIST
 			      C 
-				INCLUDE Macros.inc 
+				INCLUDE GraphWin.inc
 			      C .NOLIST
 			      C .LIST
 			      C 
-				INCLUDE GraphWin.inc 
-			      C .NOLIST
-			      C .LIST
+				INCLUDE Plotting.inc
+			      C EXTERN SetConsoleCursorPosition :PROTO :DWORD, :COORD
+			      C EXTERN WriteConsoleW            :PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD
+			      C EXTERN SetConsoleTextAttribute  :PROTO :DWORD, :WORD
 			      C 
-				INCLUDE DataFormat.inc 
+			      C PlotSnake   PROTO :DWORD, :PTR BLOCK, :DWORD, :PTR DWORD
+			      C PlotApples  PROTO :DWORD, :PTR APPLE, :DWORD, :PTR DWORD
+			      C PlotObst    PROTO :DWORD, :PTR OBSTACLE, :DWORD, :PTR DWORD
+			      C 
+				INCLUDE DataFormat.inc
 			      C ; basic unit of snake
 			      C ; dir: 0 RIGHT, 1 UP, 2 LEFT, 3 DOWN
  00000005		      C BLOCK STRUCT
@@ -47,382 +52,76 @@ src\main.asm						     Page 1 - 1
  00000000  0000 0000	      C     pos COORD <>
 			      C OBSTACLE ENDS
 			      C 
-				INCLUDE Plotting.inc
-			      C EXTERN SetConsoleCursorPosition :PROTO :DWORD, :COORD
-			      C EXTERN WriteConsoleW            :PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD
-			      C EXTERN SetConsoleTextAttribute  :PROTO :DWORD, :WORD
-			      C 
-			      C PlotSnake   PROTO :DWORD, :PTR BLOCK, :DWORD, :PTR DWORD
-			      C PlotApples  PROTO :DWORD, :PTR APPLE, :DWORD, :PTR DWORD
-			      C PlotObst    PROTO :DWORD, :PTR OBSTACLE, :DWORD, :PTR DWORD
-			      C 
 
- = start@0			main EQU start@0 
+ 00000000			.DATA
 
-				GetStdHandle PROTO :DWORD 
-				WriteConsoleW PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD 
-				ExitProcess PROTO :DWORD 
-
- 00000000			.DATA 
- 00000000 00000000		consoleHandle DWORD ? 
- 00000004  00000002 [		fullBlock WORD 2 dup(2588h), 0 ; '█' (full block), null-terminated
+ 00000000  00000002 [		fullBlock  WORD 2 dup(2588h), 0
 	    2588
 	   ] 0000
- 0000000A 0C 0A 09 0E		colors BYTE 12,10,9,14 ;light red, light green, light blue, yellow 
- 0000000E 00000003		colorMask DWORD 3 
- 00000012 0A			rows BYTE 10 
- 00000013 0A			cols BYTE 10 
- 00000014 00000000		written DWORD ? 
- 00000018 000A 0001 00		snake BLOCK <<10, 1>,0>, <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
-	   0008 0001 00
-	   0006 0001 00
-	   0004 0001 00
-	   0002 0001 00
-	   00000010 [
-	    0000 0000 00
-	   ]
- 00000081 00000005		snakeLen DWORD 5
- 00000085 0000 0000 00		lastPos BLOCK <>
- 0000008A 0014 0014 00		apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
-	   001A 0014 00
-	   0020 0014 00
- 00000099 00000003		appleLen DWORD LENGTHOF apples 
- 0000009D 000A 000A 0014	obstacles OBSTACLE <<10, 10>>, <<20, 10>>, <<30, 10>>, <<40, 10>>
-	   000A 001E 000A
-	   0028 000A
- 000000AD 00000004		obstacleLen DWORD LENGTHOF obstacles
+ 00000006 00000000		written    DWORD ?
 
- 000000B1 002A 0009		goal COORD <42, 9>
+ 00000000			.CODE
 
- 00000000			.CODE 
- 00000000			main PROC 
-					INVOKE GetStdHandle, STD_OUTPUT_HANDLE 
- 00000007  A3 00000000 R		mov consoleHandle, eax 
+ 00000000			PlotSnake PROC consoleHandle:DWORD, snakePtr:PTR BLOCK, snakeLen:DWORD, pWritten:PTR DWORD
+ 00000003  8B 75 0C		    mov esi, snakePtr 
+ 00000006  8B 4D 10		    mov ecx, snakeLen
 
- 0000000C			MAIN_LOOP: 
- 0000000C  E8 00000000 E		call ClrScr 
+ 00000009			LOOP_SNAKE:
+ 00000009  60			    pushad
+				    INVOKE SetConsoleCursorPosition, consoleHandle, (BLOCK PTR [esi]).pos
+				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
+ 00000028  61			    popad
 
-				; plot snake
-				    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
-
-				; plot apple
-				    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
-
-				; plot obstacle    
-				    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
-
- 00000062			INPUT:
-				    ; Detect input char
- 00000062  E8 00000000 E		call ReadChar 
-				    ; call ReadKey
-
-				    ; mov ebx, 4 ; clear direction 
-
-				    ; store new direction in bl
-
-					; UP ARROW, or W 
-					.IF ax == 1177h
- 0000006D  B3 01			    mov bl, 1	
-					.ENDIF 
-					; DOWN ARROW, or S 
-					.IF ax == 1F73h
- 00000075  B3 03			    mov bl, 3	
-					.ENDIF 
-					; LEFT ARROW, or A 
-					.IF ax == 1E61h 
- 0000007D  B3 02			    mov bl, 2	
-					.ENDIF 
-				    ; RIGHT ARROW, or D 
-					.IF ax == 2064h 
- 00000085  B3 00			    mov bl, 0	
-					.ENDIF 
-					; ESC 
-					.IF ax == 011Bh 
- 0000008D  E9 000002AD				jmp END_FUNC 
-					.ENDIF 
-
-				; check if the direction is valid
- 00000092  A0 0000001C R	    mov al, snake[0].dir
- 00000097  38 D8		    cmp al, bl
- 00000099  74 0F		    je SELF_INTERSECTING 
-
- 0000009B  8A FB		    mov bh, bl
- 0000009D  24 01		    and al, 1
- 0000009F  80 E7 01		    and bh, 1
- 000000A2  38 F8		    cmp al, bh
- 000000A4  0F 84 0000011C	    je NO_UPDATE
-
-				; check if the destination is empty
- 000000AA			SELF_INTERSECTING:
- 000000AA  8B 0D 00000081 R	    mov ecx, snakeLen
- 000000B0  83 C1 FE		    add ecx, -2
- 000000B3  BE 00000005		    mov esi, TYPE snake 
-
- 000000B8  66| A1		    mov ax, snake[0].pos.X
-	   00000018 R
-				    .IF bl == 0
- 000000C2  66| 83 C0 02		        add ax, 2
-				    .ENDIF
-				    .IF bl == 2
- 000000CB  66| 83 C0 FE		        add ax, -2
-				    .ENDIF
-
- 000000CF  66| 8B 15		    mov dx, snake[0].pos.Y
-	   0000001A R
-				    .IF bl == 1
- 000000DB  66| 83 C2 FF		        add dx, -1
-				    .ENDIF
-				    .IF bl == 3
- 000000E4  66| 83 C2 01		        add dx, 1
-				    .ENDIF
+ 00000029  83 C6 05		    add esi, SIZEOF BLOCK 
+ 0000002C  E2 DB		    loop LOOP_SNAKE 
+				    ret
+ 00000032			PlotSnake ENDP
 
 
- 000000E8			SELF_INTERSECTING_LOOP:
- 000000E8  66| 3B 86		    cmp ax, snake[esi].pos.X
-	   00000018 R
- 000000EF  75 0E		    jne CONTINUE_SELF 
+ 00000032			PlotApples PROC consoleHandle:DWORD, applePtr:PTR APPLE, appleLen:DWORD, pWritten:PTR DWORD
+ 00000035  8B 75 0C		    mov esi, applePtr
+ 00000038  8B 4D 10		    mov ecx, appleLen
 
- 000000F1  66| 3B 96		    cmp dx, snake[esi].pos.Y
-	   0000001A R
- 000000F8  75 05		    jne CONTINUE_SELF 
-
- 000000FA  E9 000000C7		    jmp NO_UPDATE
-
- 000000FF			CONTINUE_SELF:
- 000000FF  83 C6 05		    add esi, TYPE snake
- 00000102  E2 E4		    loop SELF_INTERSECTING_LOOP
-
- 00000104			OBSTACLE_COLLISION:
- 00000104  8B 0D 000000AD R	    mov ecx, obstacleLen
- 0000010A  BE 00000000		    mov esi, 0 
- 0000010F			OBSTACLE_LOOP:
- 0000010F  66| 3B 86		    cmp ax, obstacles[esi].pos.X
-	   0000009D R
- 00000116  75 0E		    jne CONTINUE_OBS
-
- 00000118  66| 3B 96		    cmp dx, obstacles[esi].pos.Y
-	   0000009F R
- 0000011F  75 05		    jne CONTINUE_OBS
-
- 00000121  E9 000000A0		    jmp NO_UPDATE
-
- 00000126			CONTINUE_OBS:
- 00000126  83 C6 04		    add esi, TYPE obstacles
- 00000129  E2 E4		    loop OBSTACLE_LOOP
-
- 0000012B			CHECK_BORDER:
-				    .IF ax <= 0h
- 00000131  E9 00000090			    jmp NO_UPDATE	
-					.ENDIF
-					.IF ax >= 78h
- 0000013C  E9 00000085			    jmp NO_UPDATE	
-					.ENDIF
-					.IF dx == 0h
- 00000146  EB 7E			    jmp NO_UPDATE	
-					.ENDIF
-					.IF dx == 1Dh
- 0000014E  EB 76			    jmp NO_UPDATE	
-					.ENDIF
-
- 00000150			UPDATE_POS:
- 00000150  8B 0D 00000081 R	    mov ecx, snakeLen 
- 00000156  BE 00000000		    mov esi, 0
- 0000015B			UPDATE_LOOP:
- 0000015B  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.X
-	   00000018 R
- 00000162  66| A3		    mov WORD PTR lastPos.pos.X, ax 
-	   00000085 R
- 00000168  66| 8B 86		    mov ax, WORD PTR snake[esi].pos.Y
-	   0000001A R
- 0000016F  66| A3		    mov WORD PTR lastPos.pos.Y, ax
-	   00000087 R
- 00000175  8A 86 0000001C R	    mov al, BYTE PTR snake[esi].dir
- 0000017B  A2 00000089 R	    mov BYTE PTR lastPos.dir, al
-
-				    ; right
-				    .IF bl == 0
- 00000184  66| 83 86		        add snake[esi].pos.X, 2 
-	   00000018 R 02
-				    .ENDIF
-				    ; top
-				    .IF bl == 1
- 00000191  66| 83 86		        add snake[esi].pos.Y, -1
-	   0000001A R FF
-				    .ENDIF
-				    ; left
-				    .IF bl == 2
- 0000019E  66| 83 86		        add snake[esi].pos.X, -2
-	   00000018 R FE
-				    .ENDIF
-				    ; down
-				    .IF bl == 3
- 000001AB  66| 83 86		        add snake[esi].pos.Y, 1 
-	   0000001A R 01
-				    .ENDIF
-				    
- 000001B3  8A BE 0000001C R	    mov bh, snake[esi].dir
- 000001B9  88 9E 0000001C R	    mov snake[esi].dir, bl
- 000001BF  8A DF		    mov bl, bh
- 000001C1  83 C6 05		    add esi, TYPE snake 
-
- 000001C4  E2 95		    loop UPDATE_LOOP
-
- 000001C6			NO_UPDATE:   
-				    ; check apple
- 000001C6  8B 0D 00000099 R	    mov ecx, appleLen
- 000001CC  BE 00000000		    mov esi, 0
- 000001D1			APPLE_EATEN:
- 000001D1  8A 86 0000008E R	    mov al, apples[esi].eaten
+ 0000003B			LOOP_APPLE:
+ 0000003B  8A 46 04		    mov al, (APPLE ptr [esi]).eaten
 				    .IF al == 0
- 000001DB  66| A1		        mov ax, snake[0].pos.X
-	   00000018 R
- 000001E1  66| 3B 86		        cmp ax, apples[esi].pos.X
-	   0000008A R
- 000001E8  75 4C		        jne CONTINUE_APPLE
- 000001EA  66| A1		        mov ax, snake[0].pos.Y
-	   0000001A R
- 000001F0  66| 3B 86		        cmp ax, apples[esi].pos.Y
-	   0000008C R
- 000001F7  75 3D		        jne CONTINUE_APPLE
-
- 000001F9  A1 00000081 R	        mov eax, snakeLen
- 000001FE  6B C0 05		        imul eax, TYPE snake
- 00000201  66| 8B 1D		        mov bx, lastPos.pos.X
-	   00000085 R
- 00000208  66| 89 98		        mov snake[eax].pos.X, bx
-	   00000018 R
- 0000020F  66| 8B 1D		        mov bx, lastPos.pos.Y
-	   00000087 R
- 00000216  66| 89 98		        mov snake[eax].pos.Y, bx
-	   0000001A R
- 0000021D  8A 1D 00000089 R	        mov bl, lastPos.dir
- 00000223  88 98 0000001C R	        mov snake[eax].dir, bl    
- 00000229  FF 05 00000081 R	        inc snakeLen
- 0000022F  C6 86 0000008E R	        mov apples[esi].eaten, 1
-	   01
-				    .ENDIF
- 00000236			CONTINUE_APPLE:
- 00000236  83 C6 05		    add esi, TYPE apples 
- 00000239  E2 96		    loop APPLE_EATEN
-
-				;    push 100
-				;    call Sleep
-
-				; TODO
-				; check if supported by apples or obstacles 
- 0000023B			CHECK_SUPPORTED:
- 0000023B  E8 00000000 E	    call ClrScr 
-
-				; plot snake
-				    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
-
-				; plot apple
-				    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
-
-				; plot obstacle    
-				    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
-
- 00000291  8B 0D 00000081 R	    mov ecx, snakeLen
- 00000297  BE 00000000		    mov esi, 0
- 0000029C			LOOP_SUPP:
- 0000029C  66| 8B 86		    mov ax, snake[esi].pos.X
-	   00000018 R
- 000002A3  66| 8B 9E		    mov bx, snake[esi].pos.Y
-	   0000001A R
- 000002AA  66| 43		    inc bx
- 000002AC  51			    push ecx
- 000002AD  56			    push esi
-
- 000002AE  8B 0D 000000AD R	    mov ecx, obstacleLen
- 000002B4  BE 00000000		    mov esi, 0
- 000002B9			SUPP_OBST:
- 000002B9  66| 3B 86		    cmp ax, obstacles[esi].pos.X
-	   0000009D R
- 000002C0  75 0B		    jne CONT_OBST
- 000002C2  66| 3B 9E		    cmp bx, obstacles[esi].pos.Y
-	   0000009F R
- 000002C9  75 02		    jne CONT_OBST
-
- 000002CB  EB 6D		    jmp SUPPORTED
-
- 000002CD			CONT_OBST:
- 000002CD  83 C6 04		    add esi, TYPE obstacles
- 000002D0  E2 E7		    loop SUPP_OBST
-
- 000002D2  8B 0D 00000099 R	    mov ecx, appleLen 
- 000002D8  BE 00000000		    mov esi, 0
- 000002DD			SUPP_APPLE:
-				    .IF apples[esi].eaten == 0
- 000002E6  66| 3B 86		        cmp ax, apples[esi].pos.X
-	   0000008A R
- 000002ED  75 0B		        jne CONT_APPLE_SUPP
- 000002EF  66| 3B 9E		        cmp bx, apples[esi].pos.Y
-	   0000008C R
- 000002F6  75 02		        jne CONT_APPLE_SUPP
-
- 000002F8  EB 40		        jmp SUPPORTED
+ 00000042  60			        pushad
+				        INVOKE SetConsoleCursorPosition, consoleHandle, (APPLE ptr [esi]).pos
+				        INVOKE SetConsoleTextAttribute, consoleHandle, 0Ch
+				        INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
+				        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
+ 00000075  61			        popad
 				    .ENDIF
 
- 000002FA			CONT_APPLE_SUPP:
- 000002FA  83 C6 05		    add esi, TYPE apples 
- 000002FD  E2 DE		    loop SUPP_APPLE
+ 00000076  83 C6 05		    add esi, TYPE APPLE
+ 00000079  E2 C0		    loop LOOP_APPLE 
+				    ret
+ 0000007F			PlotApples ENDP
 
- 000002FF			CONT_SUPP:
- 000002FF  5E			    pop esi
- 00000300  59			    pop ecx
- 00000301  83 C6 05		    add esi, TYPE snake
- 00000304  E2 96		    loop LOOP_SUPP
-				    
-				; if not supported, then apply gravity tell supported or full into the void (Y > threshold)
- 00000306			GRAVITY:
- 00000306  8B 0D 00000081 R	    mov ecx, snakeLen
- 0000030C  BE 00000000		    mov esi, 0 
- 00000311			LOOP_GRAVITY:
- 00000311  66| FF 86		    inc snake[esi].pos.Y    
-	   0000001A R
-				    .IF snake[esi].pos.Y >= 1Ch
- 00000322  E8 00000000 E	        call ClrScr
- 00000327  EB 16		        jmp END_FUNC
-				    .ENDIF
 
- 00000329  83 C6 05		    add esi, TYPE snake
- 0000032C  E2 E3		    loop LOOP_GRAVITY
+ 0000007F			PlotObst PROC consoleHandle:DWORD, obstPtr:PTR OBSTACLE, obstLen:DWORD, pWritten:PTR DWORD
+ 00000082  8B 75 0C		    mov esi, obstPtr
+ 00000085  8B 4D 10		    mov ecx, obstLen
 
- 0000032E  6A 64		    push 100
- 00000330  E8 00000000 E	    call Sleep
+ 00000088			LOOP_OBST:
+ 00000088  60			    pushad
+				    INVOKE SetConsoleCursorPosition, consoleHandle, (OBSTACLE ptr [esi]).pos
+				    INVOKE SetConsoleTextAttribute, consoleHandle, 08h
+				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
+				    INVOKE SetConsoleTextAttribute, consoleHandle, 07h
+ 000000BB  61			    popad
 
- 00000335  E9 FFFFFF01		    jmp CHECK_SUPPORTED
+ 000000BC  83 C6 04		    add esi, TYPE OBSTACLE
+ 000000BF  E2 C7		    loop LOOP_OBST 
+				    ret
+ 000000C5			PlotObst ENDP
 
- 0000033A			SUPPORTED:
- 0000033A  E9 FFFFFCCD			jmp MAIN_LOOP 
-					 
- 0000033F			END_FUNC: 
- 0000033F  E8 00000000 E		call WaitMsg 
-					exit
- 0000034B			main ENDP 
-				END main
+				END
+
 Microsoft (R) Macro Assembler Version 6.11		    11/28/25 14:24:13
-src\main.asm						     Symbols 2 - 1
+src\Plotting.asm					     Symbols 2 - 1
 
 
-
-
-Macros:
-
-                N a m e                 Type
-
-IsDefined  . . . . . . . . . . .	Func
-Startup  . . . . . . . . . . . .	Proc
-mDumpMem . . . . . . . . . . . .	Proc
-mDump  . . . . . . . . . . . . .	Proc
-mGotoxy  . . . . . . . . . . . .	Proc
-mReadString  . . . . . . . . . .	Proc
-mShowRegister  . . . . . . . . .	Proc
-mShow  . . . . . . . . . . . . .	Proc
-mWriteLn . . . . . . . . . . . .	Proc
-mWriteSpace  . . . . . . . . . .	Proc
-mWriteString . . . . . . . . . .	Proc
-mWrite . . . . . . . . . . . . .	Proc
 
 
 Structures and Unions:
@@ -547,8 +246,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 000000B5 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 0000034B DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000000A DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000C5 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -612,9 +311,24 @@ OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-PlotApples . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-PlotObst . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-PlotSnake  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PlotApples . . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 0000004D Public STDCALL
+  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
+  applePtr . . . . . . . . . . .	DWord	 bp + 0000000C
+  appleLen . . . . . . . . . . .	DWord	 bp + 00000010
+  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
+  LOOP_APPLE . . . . . . . . . .	L Near	 0000003B _TEXT	
+PlotObst . . . . . . . . . . . .	P Near	 0000007F _TEXT	Length= 00000046 Public STDCALL
+  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
+  obstPtr  . . . . . . . . . . .	DWord	 bp + 0000000C
+  obstLen  . . . . . . . . . . .	DWord	 bp + 00000010
+  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
+  LOOP_OBST  . . . . . . . . . .	L Near	 00000088 _TEXT	
+PlotSnake  . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000032 Public STDCALL
+  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
+  snakePtr . . . . . . . . . . .	DWord	 bp + 0000000C
+  snakeLen . . . . . . . . . . .	DWord	 bp + 00000010
+  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
+  LOOP_SNAKE . . . . . . . . . .	L Near	 00000009 _TEXT	
 PostQuitMessage  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -674,32 +388,6 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000034B Public STDCALL
-  MAIN_LOOP  . . . . . . . . . .	L Near	 0000000C _TEXT	
-  INPUT  . . . . . . . . . . . .	L Near	 00000062 _TEXT	
-  SELF_INTERSECTING  . . . . . .	L Near	 000000AA _TEXT	
-  SELF_INTERSECTING_LOOP . . . .	L Near	 000000E8 _TEXT	
-  CONTINUE_SELF  . . . . . . . .	L Near	 000000FF _TEXT	
-  OBSTACLE_COLLISION . . . . . .	L Near	 00000104 _TEXT	
-  OBSTACLE_LOOP  . . . . . . . .	L Near	 0000010F _TEXT	
-  CONTINUE_OBS . . . . . . . . .	L Near	 00000126 _TEXT	
-  CHECK_BORDER . . . . . . . . .	L Near	 0000012B _TEXT	
-  UPDATE_POS . . . . . . . . . .	L Near	 00000150 _TEXT	
-  UPDATE_LOOP  . . . . . . . . .	L Near	 0000015B _TEXT	
-  NO_UPDATE  . . . . . . . . . .	L Near	 000001C6 _TEXT	
-  APPLE_EATEN  . . . . . . . . .	L Near	 000001D1 _TEXT	
-  CONTINUE_APPLE . . . . . . . .	L Near	 00000236 _TEXT	
-  CHECK_SUPPORTED  . . . . . . .	L Near	 0000023B _TEXT	
-  LOOP_SUPP  . . . . . . . . . .	L Near	 0000029C _TEXT	
-  SUPP_OBST  . . . . . . . . . .	L Near	 000002B9 _TEXT	
-  CONT_OBST  . . . . . . . . . .	L Near	 000002CD _TEXT	
-  SUPP_APPLE . . . . . . . . . .	L Near	 000002DD _TEXT	
-  CONT_APPLE_SUPP  . . . . . . .	L Near	 000002FA _TEXT	
-  CONT_SUPP  . . . . . . . . . .	L Near	 000002FF _TEXT	
-  GRAVITY  . . . . . . . . . . .	L Near	 00000306 _TEXT	
-  LOOP_GRAVITY . . . . . . . . .	L Near	 00000311 _TEXT	
-  SUPPORTED  . . . . . . . . . .	L Near	 0000033A _TEXT	
-  END_FUNC . . . . . . . . . . .	L Near	 0000033F _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -943,22 +631,14 @@ WS_THICKFRAME  . . . . . . . . .	Number	 00040000h
 WS_VISIBLE . . . . . . . . . . .	Number	 10000000h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
-appleLen . . . . . . . . . . . .	DWord	 00000099 _DATA	
-apples . . . . . . . . . . . . .	APPLE	 0000008A _DATA	
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
-colorMask  . . . . . . . . . . .	DWord	 0000000E _DATA	
-colors . . . . . . . . . . . . .	Byte	 0000000A _DATA	
-cols . . . . . . . . . . . . . .	Byte	 00000013 _DATA	
-consoleHandle  . . . . . . . . .	DWord	 00000000 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
-fullBlock  . . . . . . . . . . .	Word	 00000004 _DATA	
-goal . . . . . . . . . . . . . .	COORD	 000000B1 _DATA	
+fullBlock  . . . . . . . . . . .	Word	 00000000 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
-lastPos  . . . . . . . . . . . .	BLOCK	 00000085 _DATA	
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
 lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
 lightGray  . . . . . . . . . . .	Number	 00000007h   
@@ -966,15 +646,9 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-main . . . . . . . . . . . . . .	Text   	 start@0
-obstacleLen  . . . . . . . . . .	DWord	 000000AD _DATA	
-obstacles  . . . . . . . . . . .	OBSTACLE  0000009D _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-rows . . . . . . . . . . . . . .	Byte	 00000012 _DATA	
-snakeLen . . . . . . . . . . . .	DWord	 00000081 _DATA	
-snake  . . . . . . . . . . . . .	BLOCK	 00000018 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
-written  . . . . . . . . . . . .	DWord	 00000014 _DATA	
+written  . . . . . . . . . . . .	DWord	 00000006 _DATA	
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
 

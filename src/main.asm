@@ -23,8 +23,9 @@ snakeLen DWORD 5
 lastPos BLOCK <>
 apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
 appleLen DWORD LENGTHOF apples 
-obstacles OBSTACLE <<30, 10>>, <<40, 10>>
+obstacles OBSTACLE <<10, 10>>, <<20, 10>>, <<30, 10>>, <<40, 10>>
 obstacleLen DWORD LENGTHOF obstacles
+goal COORD <42, 9>
 
 .CODE 
 main PROC 
@@ -217,9 +218,88 @@ CONTINUE_APPLE:
 ;    push 100
 ;    call Sleep
 
+; TODO
+; check if supported by apples or obstacles 
+CHECK_SUPPORTED:
+    call ClrScr 
+
+; plot snake
+    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
+
+; plot apple
+    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
+
+; plot obstacle    
+    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
+
+    mov ecx, snakeLen
+    mov esi, 0
+LOOP_SUPP:
+    mov ax, snake[esi].pos.X
+    mov bx, snake[esi].pos.Y
+    inc bx
+    push ecx
+    push esi
+
+    mov ecx, obstacleLen
+    mov esi, 0
+SUPP_OBST:
+    cmp ax, obstacles[esi].pos.X
+    jne CONT_OBST
+    cmp bx, obstacles[esi].pos.Y
+    jne CONT_OBST
+
+    jmp SUPPORTED
+
+CONT_OBST:
+    add esi, TYPE obstacles
+    loop SUPP_OBST
+
+    mov ecx, appleLen 
+    mov esi, 0
+SUPP_APPLE:
+    .IF apples[esi].eaten == 0
+        cmp ax, apples[esi].pos.X
+        jne CONT_APPLE_SUPP
+        cmp bx, apples[esi].pos.Y
+        jne CONT_APPLE_SUPP
+
+        jmp SUPPORTED
+    .ENDIF
+
+CONT_APPLE_SUPP:
+    add esi, TYPE apples 
+    loop SUPP_APPLE
+
+CONT_SUPP:
+    pop esi
+    pop ecx
+    add esi, TYPE snake
+    loop LOOP_SUPP
+    
+; if not supported, then apply gravity tell supported or full into the void (Y > threshold)
+GRAVITY:
+    mov ecx, snakeLen
+    mov esi, 0 
+LOOP_GRAVITY:
+    inc snake[esi].pos.Y    
+    .IF snake[esi].pos.Y >= 1Ch
+        call ClrScr
+        jmp END_FUNC
+    .ENDIF
+
+    add esi, TYPE snake
+    loop LOOP_GRAVITY
+
+    push 100
+    call Sleep
+
+    jmp CHECK_SUPPORTED
+
+SUPPORTED:
 	jmp MAIN_LOOP 
 	 
- END_FUNC: 
+END_FUNC: 
 	call WaitMsg 
 	exit
 main ENDP 
