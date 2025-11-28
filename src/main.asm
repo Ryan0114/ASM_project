@@ -2,6 +2,7 @@ INCLUDE Irvine32.inc
 INCLUDE Macros.inc 
 INCLUDE GraphWin.inc 
 INCLUDE DataFormat.inc 
+INCLUDE Plotting.inc
 
 main EQU start@0 
 
@@ -16,14 +17,14 @@ colors BYTE 12,10,9,14 ;light red, light green, light blue, yellow
 colorMask DWORD 3 
 rows BYTE 10 
 cols BYTE 10 
-cnt DWORD ? 
+written DWORD ? 
 snake BLOCK <<10, 1>,0>, <<8, 1>,0>, <<6,1>,0>, <<4,1>,0>, <<2,1>,0>, 16 dup(<>)
-snakeLen BYTE 5
+snakeLen DWORD 5
 lastPos BLOCK <>
 apples APPLE <<20, 20>,0>, <<26, 20>,0>, <<32, 20>, 0>
-appleLen BYTE LENGTHOF apples 
+appleLen DWORD LENGTHOF apples 
 obstacles OBSTACLE <<30, 10>>, <<40, 10>>
-obstacleLen BYTE LENGTHOF obstacles
+obstacleLen DWORD LENGTHOF obstacles
 
 .CODE 
 main PROC 
@@ -34,62 +35,20 @@ MAIN_LOOP:
 	call ClrScr 
 
 ; plot snake
-	movzx ecx, snakeLen 
-	mov esi, 0 
-PLOT_SNAKE: 
-	pushad
-	INVOKE SetConsoleCursorPosition, consoleHandle, snake[esi].pos 
-	INVOKE WriteConsoleW, 
-		consoleHandle, 
-		ADDR fullBlock, 
-		2, 
-		ADDR cnt, 
-		0 
-	popad
-	add esi, TYPE snake 
-	loop PLOT_SNAKE
+    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
 
 ; plot apple
-    movzx ecx, appleLen 
-    mov esi, 0
-PLOT_APPLE:
-    .IF apples[esi].eaten == 0 
-        pushad
-        INVOKE SetConsoleCursorPosition, consoleHandle, apples[esi].pos 
-        INVOKE SetConsoleTextAttribute, consoleHandle, 0ch
-        INVOKE WriteConsoleW, 
-            consoleHandle, 
-            ADDR fullBlock, 
-            2, 
-            ADDR cnt, 
-            0 
-        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
-        popad
-    .ENDIF
-    add esi, TYPE apples
-    loop PLOT_APPLE
+    INVOKE PlotApples, consoleHandle, ADDR apples, appleLen, ADDR written
 
 ; plot obstacle    
-    movzx ecx, obstacleLen
-    mov esi, 0
-PLOT_OBSTACLE:
-    pushad
-    INVOKE SetConsoleCursorPosition, consoleHandle, obstacles[esi].pos
-    INVOKE SetConsoleTextAttribute, consoleHandle, 08h
-    INVOKE WriteConsoleW,
-        consoleHandle,
-        ADDR fullBlock,
-        2,
-        ADDR cnt,
-        0
-    INVOKE SetConsoleTextAttribute, consoleHandle, 07h
-    popad
-    add esi, TYPE obstacles
-    loop PLOT_OBSTACLE
+    INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
 
 INPUT:
     ; Detect input char
-	call ReadChar ; ReadKey to continue without waiting user input 
+	call ReadChar 
+    ; call ReadKey
+
+    ; mov ebx, 4 ; clear direction 
 
     ; store new direction in bl
 
@@ -127,7 +86,7 @@ INPUT:
 
 ; check if the destination is empty
 SELF_INTERSECTING:
-    movzx ecx, snakeLen
+    mov ecx, snakeLen
     add ecx, -2
     mov esi, TYPE snake 
 
@@ -162,7 +121,7 @@ CONTINUE_SELF:
     loop SELF_INTERSECTING_LOOP
 
 OBSTACLE_COLLISION:
-    movzx ecx, obstacleLen
+    mov ecx, obstacleLen
     mov esi, 0 
 OBSTACLE_LOOP:
     cmp ax, obstacles[esi].pos.X
@@ -192,7 +151,7 @@ CHECK_BORDER:
 	.ENDIF
 
 UPDATE_POS:
-    movzx ecx, snakeLen 
+    mov ecx, snakeLen 
     mov esi, 0
 UPDATE_LOOP:
     mov ax, WORD PTR snake[esi].pos.X
@@ -228,7 +187,7 @@ UPDATE_LOOP:
 
 NO_UPDATE:   
     ; check apple
-    movzx ecx, appleLen
+    mov ecx, appleLen
     mov esi, 0
 APPLE_EATEN:
     mov al, apples[esi].eaten
@@ -240,7 +199,7 @@ APPLE_EATEN:
         cmp ax, apples[esi].pos.Y
         jne CONTINUE_APPLE
 
-        movzx eax, snakeLen
+        mov eax, snakeLen
         imul eax, TYPE snake
         mov bx, lastPos.pos.X
         mov snake[eax].pos.X, bx
@@ -254,6 +213,9 @@ APPLE_EATEN:
 CONTINUE_APPLE:
     add esi, TYPE apples 
     loop APPLE_EATEN
+
+;    push 100
+;    call Sleep
 
 	jmp MAIN_LOOP 
 	 
