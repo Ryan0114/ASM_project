@@ -26,11 +26,18 @@ appleLen DWORD LENGTHOF apples
 obstacles OBSTACLE <<10, 10>>, <<20, 10>>, <<30, 10>>, <<40, 10>>
 obstacleLen DWORD LENGTHOF obstacles
 goal COORD <42, 9>
+congrats WORD 'C', 'o', 'n', 'g', 'r', 'a', 't', 'u', 'l', 'a', 't', 'i', 'o', 'n', 's', '!', 0
 
 .CODE 
 main PROC 
 	INVOKE GetStdHandle, STD_OUTPUT_HANDLE 
 	mov consoleHandle, eax 
+
+; TODO
+; stage selection
+
+; TODO
+; stage loading
 
 MAIN_LOOP: 
 	call ClrScr 
@@ -43,6 +50,14 @@ MAIN_LOOP:
 
 ; plot obstacle    
     INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
+
+; plot goal
+    pushad
+    INVOKE SetConsoleTextAttribute, consoleHandle, 09h
+    INVOKE SetConsoleCursorPosition, consoleHandle, goal 
+    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
+    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
+    popad
 
 INPUT:
     ; Detect input char
@@ -215,12 +230,19 @@ CONTINUE_APPLE:
     add esi, TYPE apples 
     loop APPLE_EATEN
 
-;    push 100
-;    call Sleep
+CHECK_GOAL:
+    mov ax, snake[0].pos.X
+    cmp ax, goal.X
+    jne CHECK_SUPP
+    mov ax, snake[0].pos.Y
+    cmp ax, goal.Y
+    jne CHECK_SUPP
 
-; TODO
+    jmp FINISH
+    
+
 ; check if supported by apples or obstacles 
-CHECK_SUPPORTED:
+CHECK_SUPP:
     call ClrScr 
 
 ; plot snake
@@ -231,6 +253,14 @@ CHECK_SUPPORTED:
 
 ; plot obstacle    
     INVOKE PlotObst, consoleHandle, ADDR obstacles, obstacleLen, ADDR written
+
+; plot goal
+    pushad
+    INVOKE SetConsoleTextAttribute, consoleHandle, 09h
+    INVOKE SetConsoleCursorPosition, consoleHandle, goal 
+    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
+    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
+    popad
 
     mov ecx, snakeLen
     mov esi, 0
@@ -294,11 +324,21 @@ LOOP_GRAVITY:
     push 100
     call Sleep
 
-    jmp CHECK_SUPPORTED
+    jmp CHECK_SUPP
 
 SUPPORTED:
 	jmp MAIN_LOOP 
 	 
+FINISH:
+    call ClrScr
+    INVOKE WriteConsoleW, consoleHandle, ADDR congrats, LENGTHOF congrats, ADDR written, 0
+
+    call Crlf
+    call WaitMsg
+
+; TODO
+; jump to stage selection page
+
 END_FUNC: 
 	call WaitMsg 
 	exit
