@@ -1,5 +1,5 @@
 Microsoft (R) Macro Assembler Version 6.11		    12/06/25 18:51:12
-src\Plotting.asm					     Page 1 - 1
+src\GameMechanism.asm					     Page 1 - 1
 
 
 				INCLUDE Irvine32.inc
@@ -19,20 +19,6 @@ src\Plotting.asm					     Page 1 - 1
 			      C 
 			      C .NOLIST
 			      C .LIST
-			      C 
-				INCLUDE GraphWin.inc
-			      C .NOLIST
-			      C .LIST
-			      C 
-				INCLUDE Plotting.inc
-			      C EXTERN SetConsoleCursorPosition :PROTO :DWORD, :COORD
-			      C EXTERN WriteConsoleW            :PROTO :DWORD, :PTR WORD, :DWORD, :PTR DWORD, :DWORD
-			      C EXTERN SetConsoleTextAttribute  :PROTO :DWORD, :WORD
-			      C 
-			      C PlotSnake   PROTO :DWORD, :PTR BLOCK, :DWORD, :PTR DWORD
-			      C PlotApples  PROTO :DWORD, :PTR APPLE, :DWORD, :PTR DWORD
-			      C PlotObst    PROTO :DWORD, :PTR OBSTACLE, :DWORD, :PTR DWORD
-			      C PlotBox     PROTO :DWORD, :PTR COORD, :DWORD, :PTR DWORD 
 			      C 
 				INCLUDE DataFormat.inc
 			      C ; basic unit of snake
@@ -54,102 +40,76 @@ src\Plotting.asm					     Page 1 - 1
  00000004  00		      C     harmful BYTE ?
 			      C OBSTACLE ENDS
 			      C 
+				INCLUDE GameMechanism.inc
+			      C CheckIntersection PROTO :WORD, :WORD, 
+			      C                         :PTR BLOCK, snakeLen:DWORD, 
+			      C                         :PTR OBSTACLE, :DWORD
+			      C 
 
- 00000000			.DATA
+ 00000000			.data
+ 00000000			.code
 
- 00000000  00000002 [		fullBlock  WORD 2 dup(2588h), 0
-	    2588
-	   ] 0000
- 00000006 00000000		written    DWORD ?
+ 00000000			CheckIntersection PROC x:WORD, y:WORD, 
+				                       snakePtr:PTR BLOCK, sLen:DWORD, 
+				                       obstaclePtr:PTR OBSTACLE, oLen:DWORD
+				; check if the destination is empty
+ 00000003			SELF_INTERSECTING:
+ 00000003  8B 4D 14		    mov ecx, sLen
+ 00000006  83 C1 FF		    add ecx, -1
+ 00000009  8B 75 10		    mov esi, snakePtr 
+ 0000000C  83 C6 05		    add esi, SIZEOF BLOCK 
+				    
+ 0000000F			SELF_INTERSECTING_LOOP:
+ 0000000F  66| 3B 06		    cmp ax, (BLOCK PTR [esi]).pos.X
+ 00000012  75 08		    jne CONTINUE_SELF 
 
- 00000000			.CODE
+ 00000014  66| 3B 56 02		    cmp dx, (BLOCK PTR [esi]).pos.Y
+ 00000018  75 02		    jne CONTINUE_SELF 
 
- 00000000			PlotSnake PROC consoleHandle:DWORD, snakePtr:PTR BLOCK, sLen:DWORD, pWritten:PTR DWORD
- 00000003  8B 75 0C		    mov esi, snakePtr 
- 00000006  8B 4D 10		    mov ecx, sLen
+ 0000001A  EB 2A		    jmp NO_UPDATE
 
- 00000009			LOOP_SNAKE:
- 00000009  60			    pushad
-				    INVOKE SetConsoleCursorPosition, consoleHandle, (BLOCK PTR [esi]).pos
-				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
- 00000028  61			    popad
+ 0000001C			CONTINUE_SELF:
+ 0000001C  83 C6 05		    add esi, SIZEOF BLOCK 
+ 0000001F  E2 EE		    loop SELF_INTERSECTING_LOOP
 
- 00000029  83 C6 05		    add esi, SIZEOF BLOCK 
- 0000002C  E2 DB		    loop LOOP_SNAKE 
-				    ret
- 00000032			PlotSnake ENDP
+ 00000021			OBSTACLE_COLLISION:
+ 00000021  8B 4D 1C		    mov ecx, oLen
+ 00000024  8B 75 18		    mov esi, obstaclePtr 
+ 00000027			OBSTACLE_LOOP:
+ 00000027  66| 3B 06		    cmp ax, (OBSTACLE PTR [esi]).pos.X
+ 0000002A  75 13		    jne CONTINUE_OBS
 
-
- 00000032			PlotApples PROC consoleHandle:DWORD, applePtr:PTR APPLE, aLen:DWORD, pWritten:PTR DWORD
-				    .IF aLen == 0
-				        ret
-				    .ENDIF 
- 0000003F  8B 75 0C		    mov esi, applePtr
- 00000042  8B 4D 10		    mov ecx, aLen
-
- 00000045			LOOP_APPLE:
- 00000045  8A 46 04		    mov al, (APPLE ptr [esi]).eaten
-				    .IF al == 0
- 0000004C  60			        pushad
-				        INVOKE SetConsoleCursorPosition, consoleHandle, (APPLE ptr [esi]).pos
-				        INVOKE SetConsoleTextAttribute, consoleHandle, 0Ch
-				        INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
-				        INVOKE SetConsoleTextAttribute, consoleHandle, 07h
- 0000007F  61			        popad
+ 0000002C  66| 3B 56 02		    cmp dx, (OBSTACLE PTR [esi]).pos.Y
+ 00000030  75 0D		    jne CONTINUE_OBS
+				    
+ 00000032  8A 7E 04		    mov bh, (OBSTACLE PTR [esi]).harmful
+				    .IF bh == 0
+ 00000039  EB 0B		        jmp NO_UPDATE
+				    .ELSE 
+ 0000003D  EB 0B		        jmp GAMEOVER 
 				    .ENDIF
 
- 00000080  83 C6 05		    add esi, TYPE APPLE
- 00000083  E2 C0		    loop LOOP_APPLE 
+ 0000003F			CONTINUE_OBS:
+ 0000003F  83 C6 05		    add esi, SIZEOF OBSTACLE 
+ 00000042  E2 E3		    loop OBSTACLE_LOOP
+
+ 00000044  EB 08		    jmp NO_INTERSECTION
+
+ 00000046			NO_UPDATE:
+ 00000046  B7 02		    mov bh, 2
+ 00000048  EB 06		    jmp RETURN
+ 0000004A			GAMEOVER:
+ 0000004A  B7 01		    mov bh, 1
+ 0000004C  EB 02		    jmp RETURN
+ 0000004E			NO_INTERSECTION:
+ 0000004E  B7 00		    mov bh, 0 
+ 00000050			RETURN:
 				    ret
- 00000089			PlotApples ENDP
-
-
- 00000089			PlotObst PROC consoleHandle:DWORD, obstPtr:PTR OBSTACLE, oLen:DWORD, pWritten:PTR DWORD
- 0000008C  8B 75 0C		    mov esi, obstPtr
- 0000008F  8B 4D 10		    mov ecx, oLen
-
- 00000092			LOOP_OBST:
- 00000092  60			    pushad
-				    INVOKE SetConsoleCursorPosition, consoleHandle, (OBSTACLE ptr [esi]).pos
- 0000009D  8A 46 04		    mov al, (OBSTACLE ptr [esi]).harmful
-				    .IF al == 0
-				        INVOKE SetConsoleTextAttribute, consoleHandle, 08h
-				    .ELSE
-				        INVOKE SetConsoleTextAttribute, consoleHandle, 0Dh
-				    .ENDIF
-				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
-				    INVOKE SetConsoleTextAttribute, consoleHandle, 07h
- 000000D8  61			    popad
-
- 000000D9  83 C6 05		    add esi, TYPE OBSTACLE
- 000000DC  E2 B4		    loop LOOP_OBST 
-				    ret
- 000000E2			PlotObst ENDP
-
- 000000E2			PlotBox PROC consoleHandle:DWORD, boxPtr:PTR COORD, bLen:DWORD, pWritten:PTR DWORD
-				    .IF bLen == 0
-				        ret
-				    .ENDIF
- 000000EF  8B 75 0C		    mov esi, boxPtr 
- 000000F2  8B 4D 10		    mov ecx, bLen
-
- 000000F5			LOOP_BOX:
- 000000F5  60			    pushad
-				    INVOKE SetConsoleTextAttribute, consoleHandle, 06h
-				    INVOKE SetConsoleCursorPosition, consoleHandle, (COORD ptr [esi]) 
-				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
-				    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
- 0000012A  61			    popad
-
- 0000012B  83 C6 04		    add esi, SIZEOF COORD
- 0000012E  E2 C5		    loop LOOP_BOX
-				    ret
- 00000134			PlotBox ENDP
+ 00000054			CheckIntersection ENDP
 
 				END
-
 Microsoft (R) Macro Assembler Version 6.11		    12/06/25 18:51:12
-src\Plotting.asm					     Symbols 2 - 1
+src\GameMechanism.asm					     Symbols 2 - 1
 
 
 
@@ -224,24 +184,9 @@ MOUSE_EVENT_RECORD . . . . . . .	 00000010
   dwButtonState  . . . . . . . .	 00000004	 DWord
   dwMouseControlKeyState . . . .	 00000008	 DWord
   dwEventFlags . . . . . . . . .	 0000000C	 DWord
-MSGStruct  . . . . . . . . . . .	 0000001C
-  msgWnd . . . . . . . . . . . .	 00000000	 DWord
-  msgMessage . . . . . . . . . .	 00000004	 DWord
-  msgWparam  . . . . . . . . . .	 00000008	 DWord
-  msgLparam  . . . . . . . . . .	 0000000C	 DWord
-  msgTime  . . . . . . . . . . .	 00000010	 DWord
-  msgPt  . . . . . . . . . . . .	 00000014	 QWord
 OBSTACLE . . . . . . . . . . . .	 00000005
   pos  . . . . . . . . . . . . .	 00000000	 DWord
   harmful  . . . . . . . . . . .	 00000004	 Byte
-POINT  . . . . . . . . . . . . .	 00000008
-  X  . . . . . . . . . . . . . .	 00000000	 DWord
-  Y  . . . . . . . . . . . . . .	 00000004	 DWord
-RECT . . . . . . . . . . . . . .	 00000010
-  left . . . . . . . . . . . . .	 00000000	 DWord
-  top  . . . . . . . . . . . . .	 00000004	 DWord
-  right  . . . . . . . . . . . .	 00000008	 DWord
-  bottom . . . . . . . . . . . .	 0000000C	 DWord
 SMALL_RECT . . . . . . . . . . .	 00000008
   Left . . . . . . . . . . . . .	 00000000	 Word
   Top  . . . . . . . . . . . . .	 00000002	 Word
@@ -258,17 +203,6 @@ SYSTEMTIME . . . . . . . . . . .	 00000010
   wMilliseconds  . . . . . . . .	 0000000E	 Word
 WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
   dwSize . . . . . . . . . . . .	 00000000	 DWord
-WNDCLASS . . . . . . . . . . . .	 00000028
-  style  . . . . . . . . . . . .	 00000000	 DWord
-  lpfnWndProc  . . . . . . . . .	 00000004	 DWord
-  cbClsExtra . . . . . . . . . .	 00000008	 DWord
-  cbWndExtra . . . . . . . . . .	 0000000C	 DWord
-  hInstance  . . . . . . . . . .	 00000010	 DWord
-  hIcon  . . . . . . . . . . . .	 00000014	 DWord
-  hCursor  . . . . . . . . . . .	 00000018	 DWord
-  hbrBackground  . . . . . . . .	 0000001C	 DWord
-  lpszMenuName . . . . . . . . .	 00000020	 DWord
-  lpszClassName  . . . . . . . .	 00000024	 DWord
 
 
 Segments and Groups:
@@ -277,24 +211,38 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 0000000A DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000134 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000054 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
 
                 N a m e                 Type     Value    Attr
 
+CheckIntersection  . . . . . . .	P Near	 00000000 _TEXT	Length= 00000054 Public STDCALL
+  x  . . . . . . . . . . . . . .	Word	 bp + 00000008
+  y  . . . . . . . . . . . . . .	Word	 bp + 0000000C
+  snakePtr . . . . . . . . . . .	DWord	 bp + 00000010
+  sLen . . . . . . . . . . . . .	DWord	 bp + 00000014
+  obstaclePtr  . . . . . . . . .	DWord	 bp + 00000018
+  oLen . . . . . . . . . . . . .	DWord	 bp + 0000001C
+  SELF_INTERSECTING  . . . . . .	L Near	 00000003 _TEXT	
+  SELF_INTERSECTING_LOOP . . . .	L Near	 0000000F _TEXT	
+  CONTINUE_SELF  . . . . . . . .	L Near	 0000001C _TEXT	
+  OBSTACLE_COLLISION . . . . . .	L Near	 00000021 _TEXT	
+  OBSTACLE_LOOP  . . . . . . . .	L Near	 00000027 _TEXT	
+  CONTINUE_OBS . . . . . . . . .	L Near	 0000003F _TEXT	
+  NO_UPDATE  . . . . . . . . . .	L Near	 00000046 _TEXT	
+  GAMEOVER . . . . . . . . . . .	L Near	 0000004A _TEXT	
+  NO_INTERSECTION  . . . . . . .	L Near	 0000004E _TEXT	
+  RETURN . . . . . . . . . . . .	L Near	 00000050 _TEXT	
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-CreateWindowExA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-DefWindowProcA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-DispatchMessageA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -314,8 +262,6 @@ GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-GetMessageA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-GetModuleHandleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -323,8 +269,6 @@ GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-GetWindowDC  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-GetWindowRect  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -332,8 +276,6 @@ HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-LoadCursorA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-LoadIconA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -342,31 +284,6 @@ OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-PlotApples . . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 00000057 Public STDCALL
-  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
-  applePtr . . . . . . . . . . .	DWord	 bp + 0000000C
-  aLen . . . . . . . . . . . . .	DWord	 bp + 00000010
-  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
-  LOOP_APPLE . . . . . . . . . .	L Near	 00000045 _TEXT	
-PlotBox  . . . . . . . . . . . .	P Near	 000000E2 _TEXT	Length= 00000052 Public STDCALL
-  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
-  boxPtr . . . . . . . . . . . .	DWord	 bp + 0000000C
-  bLen . . . . . . . . . . . . .	DWord	 bp + 00000010
-  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
-  LOOP_BOX . . . . . . . . . . .	L Near	 000000F5 _TEXT	
-PlotObst . . . . . . . . . . . .	P Near	 00000089 _TEXT	Length= 00000059 Public STDCALL
-  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
-  obstPtr  . . . . . . . . . . .	DWord	 bp + 0000000C
-  oLen . . . . . . . . . . . . .	DWord	 bp + 00000010
-  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
-  LOOP_OBST  . . . . . . . . . .	L Near	 00000092 _TEXT	
-PlotSnake  . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000032 Public STDCALL
-  consoleHandle  . . . . . . . .	DWord	 bp + 00000008
-  snakePtr . . . . . . . . . . .	DWord	 bp + 0000000C
-  sLen . . . . . . . . . . . . .	DWord	 bp + 00000010
-  pWritten . . . . . . . . . . .	DWord	 bp + 00000014
-  LOOP_SNAKE . . . . . . . . . .	L Near	 00000009 _TEXT	
-PostQuitMessage  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -382,7 +299,6 @@ ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-RegisterClassA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -394,7 +310,6 @@ SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-ShowWindow . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -403,7 +318,6 @@ Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-UpdateWindow . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -411,7 +325,6 @@ WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-WriteConsoleW  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -443,17 +356,11 @@ Symbols:
 @stack . . . . . . . . . . . . .	Text   	 FLAT
 ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
 CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
-COLOR_BACKGROUND . . . . . . . .	Number	 00000002h   
-COLOR_WINDOW . . . . . . . . . .	Number	 00000005h   
 CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
 CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
 CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
-CW_USEDEFAULT  . . . . . . . . .	Number	 -80000000h   
 CreateFile . . . . . . . . . . .	Text   	 CreateFileA
-CreateWindowEx . . . . . . . . .	Text   	 CreateWindowExA
 DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
-DefWindowProc  . . . . . . . . .	Text   	 DefWindowProcA
-DispatchMessage  . . . . . . . .	Text   	 DispatchMessageA
 ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
 ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
 ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
@@ -496,8 +403,6 @@ GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h
 GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
 GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
 GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
-GetMessage . . . . . . . . . . .	Text   	 GetMessageA
-GetModuleHandle  . . . . . . . .	Text   	 GetModuleHandleA
 HANDLE . . . . . . . . . . . . .	Text   	 DWORD
 HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
 HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
@@ -508,10 +413,8 @@ IDABORT  . . . . . . . . . . . .	Number	 00000003h
 IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
 IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
 IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
-IDC_ARROW  . . . . . . . . . . .	Number	 00007F00h   
 IDHELP . . . . . . . . . . . . .	Number	 00000009h   
 IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
-IDI_APPLICATION  . . . . . . . .	Number	 00007F00h   
 IDNO . . . . . . . . . . . . . .	Number	 00000007h   
 IDOK . . . . . . . . . . . . . .	Number	 00000001h   
 IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
@@ -524,9 +427,6 @@ KEY_EVENT  . . . . . . . . . . .	Number	 00000001h
 KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
 LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
 LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
-LoadCursor . . . . . . . . . . .	Text   	 LoadCursorA
-LoadIcon . . . . . . . . . . . .	Text   	 LoadIconA
-MAIN_WINDOW_STYLE  . . . . . . .	Number	 118F0000h   
 MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
 MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
 MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
@@ -563,14 +463,12 @@ RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h
 RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
 ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
 ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
-RegisterClass  . . . . . . . . .	Text   	 RegisterClassA
 SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
 SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
 SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
 STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
 STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
 STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
-SW_SHOW  . . . . . . . . . . . .	Number	 00000005h   
 SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
 TAB  . . . . . . . . . . . . . .	Number	 00000009h   
 TRUE . . . . . . . . . . . . . .	Number	 00000001h   
@@ -654,18 +552,6 @@ VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh
 VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
 VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
 WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
-WM_CLOSE . . . . . . . . . . . .	Number	 00000010h   
-WM_CREATE  . . . . . . . . . . .	Number	 00000001h   
-WM_LBUTTONDOWN . . . . . . . . .	Number	 00000201h   
-WS_BORDER  . . . . . . . . . . .	Number	 00800000h   
-WS_CAPTION . . . . . . . . . . .	Number	 00C00000h   
-WS_DLGFRAME  . . . . . . . . . .	Number	 00400000h   
-WS_MAXIMIZEBOX . . . . . . . . .	Number	 00010000h   
-WS_MINIMIZEBOX . . . . . . . . .	Number	 00020000h   
-WS_OVERLAPPED  . . . . . . . . .	Number	 00000000h   
-WS_SYSMENU . . . . . . . . . . .	Number	 00080000h   
-WS_THICKFRAME  . . . . . . . . .	Number	 00040000h   
-WS_VISIBLE . . . . . . . . . . .	Number	 10000000h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
@@ -673,7 +559,6 @@ blue . . . . . . . . . . . . . .	Number	 00000001h
 brown  . . . . . . . . . . . . .	Number	 00000006h   
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
-fullBlock  . . . . . . . . . . .	Word	 00000000 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
@@ -685,7 +570,6 @@ lightRed . . . . . . . . . . . .	Number	 0000000Ch
 magenta  . . . . . . . . . . . .	Number	 00000005h   
 red  . . . . . . . . . . . . . .	Number	 00000004h   
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
-written  . . . . . . . . . . . .	DWord	 00000006 _DATA	
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
 
