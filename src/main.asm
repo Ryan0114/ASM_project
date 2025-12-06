@@ -158,6 +158,7 @@ BOX_COLLISION_CHECK:
     jne CONT_BOX_COLLISION
     cmp dx, boxes[esi].Y
     jne CONT_BOX_COLLISION
+    push esi
 
 ; check box destination empty
     .IF bl == 0
@@ -198,6 +199,7 @@ BOX_COLLISION_CHECK:
 
  
 ; move box
+    pop esi
     .IF bl == 0
         add boxes[esi].X, 2
     .ELSEIF bl == 1
