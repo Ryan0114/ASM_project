@@ -10,9 +10,9 @@ written    DWORD ?
 
 .CODE
 
-PlotSnake PROC consoleHandle:DWORD, snakePtr:PTR BLOCK, snakeLen:DWORD, pWritten:PTR DWORD
+PlotSnake PROC consoleHandle:DWORD, snakePtr:PTR BLOCK, sLen:DWORD, pWritten:PTR DWORD
     mov esi, snakePtr 
-    mov ecx, snakeLen
+    mov ecx, sLen
 
 LOOP_SNAKE:
     pushad
@@ -26,9 +26,12 @@ LOOP_SNAKE:
 PlotSnake ENDP
 
 
-PlotApples PROC consoleHandle:DWORD, applePtr:PTR APPLE, appleLen:DWORD, pWritten:PTR DWORD
+PlotApples PROC consoleHandle:DWORD, applePtr:PTR APPLE, aLen:DWORD, pWritten:PTR DWORD
+    .IF aLen == 0
+        ret
+    .ENDIF 
     mov esi, applePtr
-    mov ecx, appleLen
+    mov ecx, aLen
 
 LOOP_APPLE:
     mov al, (APPLE ptr [esi]).eaten
@@ -47,14 +50,19 @@ LOOP_APPLE:
 PlotApples ENDP
 
 
-PlotObst PROC consoleHandle:DWORD, obstPtr:PTR OBSTACLE, obstLen:DWORD, pWritten:PTR DWORD
+PlotObst PROC consoleHandle:DWORD, obstPtr:PTR OBSTACLE, oLen:DWORD, pWritten:PTR DWORD
     mov esi, obstPtr
-    mov ecx, obstLen
+    mov ecx, oLen
 
 LOOP_OBST:
     pushad
     INVOKE SetConsoleCursorPosition, consoleHandle, (OBSTACLE ptr [esi]).pos
-    INVOKE SetConsoleTextAttribute, consoleHandle, 08h
+    mov al, (OBSTACLE ptr [esi]).harmful
+    .IF al == 0
+        INVOKE SetConsoleTextAttribute, consoleHandle, 08h
+    .ELSE
+        INVOKE SetConsoleTextAttribute, consoleHandle, 0Dh
+    .ENDIF
     INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, pWritten, 0
     INVOKE SetConsoleTextAttribute, consoleHandle, 07h
     popad
@@ -63,6 +71,26 @@ LOOP_OBST:
     loop LOOP_OBST 
     ret
 PlotObst ENDP
+
+PlotBox PROC consoleHandle:DWORD, boxPtr:PTR COORD, bLen:DWORD, pWritten:PTR DWORD
+    .IF bLen == 0
+        ret
+    .ENDIF
+    mov esi, boxPtr 
+    mov ecx, bLen
+
+LOOP_BOX:
+    pushad
+    INVOKE SetConsoleTextAttribute, consoleHandle, 06h
+    INVOKE SetConsoleCursorPosition, consoleHandle, (COORD ptr [esi]) 
+    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
+    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
+    popad
+
+    add esi, SIZEOF COORD
+    loop LOOP_BOX
+    ret
+PlotBox ENDP
 
 END
 
