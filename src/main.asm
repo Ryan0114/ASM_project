@@ -149,6 +149,9 @@ CHECK_INTERSECTING:
     .ENDIF
 
 ; check collision with boxes
+	.IF boxLen == 0
+		jmp CHECK_BORDER
+	.ENDIF
     mov ecx, boxLen
     mov esi, 0
 BOX_COLLISION_CHECK:
@@ -370,8 +373,6 @@ CHECK_SUPP:
     INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
     popad
 
-
-; -----------------------    
     mov ecx, snakeLen
     mov esi, 0
 LOOP_SUPP:
@@ -381,8 +382,71 @@ LOOP_SUPP:
     push ecx
     push esi
 
-    INVOKE CheckSupported, ax, bx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen, ADDR apples, appleLen, boxes, boxLen, goal
+    mov ecx, obstacleLen
+    mov esi, 0
+SUPP_OBST:
+    cmp ax, obstacles[esi].pos.X
+    jne CONT_OBST
+    cmp bx, obstacles[esi].pos.Y
+    jne CONT_OBST
 
+    mov dl, obstacles[esi].harmful
+    .IF dl == 0
+        jmp SUPPORTED
+    .ELSE
+        mov dh, 1
+    .ENDIF
+
+
+CONT_OBST:
+    add esi, TYPE obstacles
+    loop SUPP_OBST
+    
+    
+    mov ecx, appleLen 
+    mov esi, 0
+SUPP_APPLE:
+    .IF apples[esi].eaten == 0
+        cmp ax, apples[esi].pos.X
+        jne CONT_APPLE_SUPP
+        cmp bx, apples[esi].pos.Y
+        jne CONT_APPLE_SUPP
+
+        jmp SUPPORTED
+    .ENDIF
+
+CONT_APPLE_SUPP:
+    add esi, TYPE apples 
+    loop SUPP_APPLE
+
+; ---------- check box support ------------
+	.IF boxLen == 0
+		jmp SUPP_GOAL
+	.ENDIF
+    mov ecx, boxLen
+    mov esi, 0
+SUPP_BOX:
+    cmp ax, boxes[esi].X
+    jne CONT_BOX_SUPP
+    cmp bx, boxes[esi].Y
+    jne CONT_BOX_SUPP
+
+    jmp SUPPORTED
+
+CONT_BOX_SUPP:
+    add esi, TYPE boxes
+    loop SUPP_BOX
+
+; ---------- check goal support ----------; 374
+SUPP_GOAL:
+    cmp ax, goal.X
+    jne CONT_SUPP
+    cmp bx, goal.Y
+    jne CONT_SUPP
+
+    jmp SUPPORTED
+
+ 
 CONT_SUPP:
     pop esi
     pop ecx
@@ -393,7 +457,7 @@ CONT_SUPP:
     .IF dh == 1
         jmp GAMEOVER
     .ENDIF
-       
+   
 ; if not supported, then apply gravity tell supported or full into the void (Y > threshold)
 GRAVITY:
     mov ecx, snakeLen
