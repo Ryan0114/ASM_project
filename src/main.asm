@@ -50,14 +50,12 @@ main PROC
 	INVOKE GetStdHandle, STD_OUTPUT_HANDLE 
 	mov consoleHandle, eax 
 
-; TODO
 ; title screen
 TITLE_SCREEN:
     call ClrScr
     mWrite <"SNAKE PUZZLE", 0dh, 0ah>
     call WaitMsg
 
-; TODO
 SELECT_STAGE:
 ; stage selection and load stage
     call ClrScr
@@ -158,6 +156,7 @@ BOX_COLLISION_CHECK:
     jne CONT_BOX_COLLISION
     cmp dx, boxes[esi].Y
     jne CONT_BOX_COLLISION
+    push esi
 
 ; check box destination empty
     .IF bl == 0
@@ -174,6 +173,7 @@ BOX_COLLISION_CHECK:
         add dx, 1
     .ENDIF
     
+    ; snake and obstacle 
     INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
     .IF bh == 1 
         jmp NO_UPDATE 
@@ -182,6 +182,47 @@ BOX_COLLISION_CHECK:
         jmp NO_UPDATE
     .ENDIF
 
+    ; box
+    push ecx
+    push esi
+    mov ecx, boxLen
+    mov esi, 0
+BB_COLL:
+    cmp ax, boxes[esi].X
+    jne CONT_BB_COLL
+    cmp dx, boxes[esi].Y
+    jne CONT_BB_COLL
+
+    jmp NO_UPDATE
+CONT_BB_COLL:
+    add esi, SIZEOF COORD
+    loop BB_COLL
+
+    ; apple
+    mov ecx, appleLen
+    mov esi, 0
+BA_COLL:
+    cmp ax, apples[esi].pos.X
+    jne CONT_BA_COLL
+    cmp dx, apples[esi].pos.Y
+    jne CONT_BA_COLL
+
+    jmp NO_UPDATE
+CONT_BA_COLL:
+    add esi, SIZEOF APPLE 
+    loop BA_COLL
+
+    pop esi
+    pop ecx
+    ; goal
+    cmp ax, goal.X
+    jne ORI_VAL
+    cmp dx, goal.Y
+    jne ORI_VAL
+
+    jmp NO_UPDATE
+
+ORI_VAL:
     .IF bl == 0
         add ax, -2
     .ENDIF
@@ -195,9 +236,9 @@ BOX_COLLISION_CHECK:
     .IF bl == 3
         add dx, -1
     .ENDIF
-
  
 ; move box
+    pop esi
     .IF bl == 0
         add boxes[esi].X, 2
     .ELSEIF bl == 1
