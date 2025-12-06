@@ -14,4 +14,5 @@ APPLE ENDS
 ; obstacle
 OBSTACLE STRUCT
     pos COORD <>
+    harmful BYTE ?
 OBSTACLE ENDS

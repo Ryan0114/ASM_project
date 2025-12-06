@@ -63,4 +63,49 @@ RETURN:
     ret
 CheckIntersection ENDP
 
+; -------------- check supported --------------
+CheckSupported PROC
+    
+    mov ecx, obstacleLen
+    mov esi, 0
+SUPP_OBST:
+    cmp ax, obstacles[esi].pos.X
+    jne CONT_OBST
+    cmp bx, obstacles[esi].pos.Y
+    jne CONT_OBST
+
+    mov dl, obstacles[esi].harmful
+    .IF dl == 0
+        jmp SUPPORTED
+    .ELSE
+        mov dh, 1
+    .ENDIF
+
+
+CONT_OBST:
+    add esi, TYPE obstacles
+    loop SUPP_OBST
+    
+    
+    mov ecx, appleLen 
+    mov esi, 0
+SUPP_APPLE:
+    .IF apples[esi].eaten == 0
+        cmp ax, apples[esi].pos.X
+        jne CONT_APPLE_SUPP
+        cmp bx, apples[esi].pos.Y
+        jne CONT_APPLE_SUPP
+
+        jmp SUPPORTED
+    .ENDIF
+
+CONT_APPLE_SUPP:
+    add esi, TYPE apples 
+    loop SUPP_APPLE
+
+; ---------- check box support ------------
+    mov ecx, boxLen
+    mov esi, 0
+SUPP_BOX:
+CheckSupported ENDP
 END
