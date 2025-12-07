@@ -37,6 +37,9 @@ boxLen DWORD ?
 goal COORD <>
 lastPos BLOCK <>
 
+update_box DWORD ?
+update BYTE ?
+
 stageText byte 2 dup(?),0
 xyUI COORD <?,?>
 
@@ -51,7 +54,6 @@ main PROC
 ; title screen
 TITLE_SCREEN:
     call ClrScr
-
     INVOKE SetConsoleTextAttribute, consoleHandle, 0Ah
 	mov xyUI.X, 10
 	mov xyUI.Y, 7
@@ -277,7 +279,8 @@ ORI_VAL:
     .ELSEIF bl == 3
         jmp NO_UPDATE
     .ENDIF
-
+	mov update_box, esi
+	mov update, 1
     jmp CHECK_BORDER
 CONT_BOX_COLLISION:
     add esi, TYPE boxes
@@ -285,6 +288,8 @@ CONT_BOX_COLLISION:
     jnz near ptr BOX_COLLISION_CHECK 
 
     jmp CHECK_BORDER
+	
+; --- (old)
 
 ; ------- Check border --------
 CHECK_BORDER:
@@ -335,6 +340,122 @@ UPDATE_LOOP:
     add esi, TYPE snake 
 
     loop UPDATE_LOOP
+	
+; -- (new)
+	.IF update ==1
+		mov update, 0
+CHECK_BOX_SUPP:
+		push eax
+		push edx
+WN_SUPP:
+		mov esi, update_box
+		mov ax, boxes[esi].X 
+		mov dx, boxes[esi].Y
+		inc dx
+		INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
+		.IF bh == 1 
+			jmp MOVE_ON 
+		.ENDIF
+		.IF bh == 2
+			jmp MOVE_ON
+		.ENDIF
+; check box supported by apple
+		mov ecx, appleLen
+		mov esi, 0
+BA_SUPP:
+		mov bh, apples[esi].eaten
+		.IF bh == 0
+			cmp ax, apples[esi].pos.X
+			jne CONT_BA_SUPP
+			cmp dx, apples[esi].pos.Y
+			jne CONT_BA_SUPP
+			
+			jmp MOVE_ON
+		.ENDIF
+CONT_BA_SUPP:
+		add esi, SIZEOF APPLE
+		loop BA_SUPP
+		
+APPLE_GRAVITY:
+		mov esi, update_box
+		add boxes[esi].Y, 1
+		.IF dx >= 1Ch
+			jmp MOVE_ON
+		.ENDIF
+		jmp WN_SUPP
+	
+MOVE_ON:
+		pop edx
+		pop eax
+	.ENDIF
+; --
+
+; check tail-supported box
+	.IF boxLen == 0
+		jmp NO_UPDATE
+	.ENDIF
+	mov ecx, boxLen
+	mov esi, 0
+	mov ax, lastPos.pos.X
+	mov dx, lastPos.pos.Y
+	dec dx
+T_SUPP:
+	cmp ax, boxes[esi].X 
+	jne CONT_T_SUPP
+	cmp dx, boxes[esi].Y
+	jne CONT_T_SUPP
+	
+	mov update_box, esi
+	jmp CHECK_BOX_SUPP_T
+CONT_T_SUPP:
+	add esi, SIZEOF COORD
+	loop T_SUPP
+
+; ---------------
+CHECK_BOX_SUPP_T:
+	push eax
+	push edx
+WN_SUPP_T:
+	mov esi, update_box
+	mov ax, boxes[esi].X 
+	mov dx, boxes[esi].Y
+	inc dx
+	INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
+	.IF bh == 1 
+		jmp MOVE_ON_T
+	.ENDIF
+	.IF bh == 2
+		jmp MOVE_ON_T
+	.ENDIF
+; check box supported by apple
+	mov ecx, appleLen
+	mov esi, 0
+BA_SUPP_T:
+	mov bh, apples[esi].eaten
+	.IF bh == 0
+		cmp ax, apples[esi].pos.X
+		jne CONT_BA_SUPP_T
+		cmp dx, apples[esi].pos.Y
+		jne CONT_BA_SUPP_T
+		
+		jmp MOVE_ON_T
+	.ENDIF
+CONT_BA_SUPP_T:
+	add esi, SIZEOF APPLE
+	loop BA_SUPP_T
+	
+APPLE_GRAVITY_T:
+	mov esi, update_box
+	add boxes[esi].Y, 1
+	.IF dx >= 1Ch
+		jmp MOVE_ON_T
+	.ENDIF
+	jmp WN_SUPP_T
+
+MOVE_ON_T:
+	pop edx
+	pop eax
+;----------------------
 
 NO_UPDATE:   
     ; check apple
@@ -512,7 +633,6 @@ NEXT_LOOP:
 
 FINISH:
     call ClrScr
-    
     mov xyUI.X, 10
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -547,7 +667,6 @@ FINISH:
 
 GAMEOVER:
     call ClrScr
-    
     mov xyUI.X, 10
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -572,12 +691,11 @@ GAMEOVER:
     mov xyUI.Y, 12
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
     mWrite <"text">
-    call WaitMsg
+	call WaitMsg
     jmp SELECT_STAGE
 
 END_FUNC: 
     call ClrScr
-
     mov xyUI.X, 20
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -828,8 +946,10 @@ notNUM:
 	je caseNextPos
 ; nextLine
 	xor esi, esi
+;	add edx, 9
 	dec ecx
 	inc ebx
+	
     .IF edx <= 9
         mov edx,10
     .ELSEIF edx <= 19
@@ -841,6 +961,8 @@ notNUM:
     .ELSE
         mov edx,50
     .ENDIF
+; -----------------	
+	
 	cmp dx, 40 ; handle trap data
 	jne looping
 	push edx
