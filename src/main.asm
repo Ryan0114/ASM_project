@@ -30,17 +30,15 @@ snake BLOCK 15 dup(<>)
 snakeLen DWORD ?
 apples APPLE 15  dup(<>)
 appleLen DWORD ?
-obstacles OBSTACLE 40 dup(<>)
+obstacles OBSTACLE 60 dup(<>)
 obstacleLen DWORD ?
 boxes COORD 15 dup(<>)
 boxLen DWORD ?
 goal COORD <>
 lastPos BLOCK <>
 
-stageLine0 COORD <32,10>
-stageLine1 COORD <30,11>
-stageLine2 COORD <30,12>
 stageText byte 2 dup(?),0
+xyUI COORD <?,?>
 
 ; TODO
 ; 2. box 
@@ -53,7 +51,32 @@ main PROC
 ; title screen
 TITLE_SCREEN:
     call ClrScr
-    mWrite <"SNAKE PUZZLE", 0dh, 0ah>
+
+    INVOKE SetConsoleTextAttribute, consoleHandle, 0Ah
+	mov xyUI.X, 10
+	mov xyUI.Y, 7
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+	mWrite <"  ____              _          ____                _         ____                      ">
+	mov xyUI.X, 10
+	mov xyUI.Y, 8
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+	mWrite <" / ___| _ __   __ _| | _____  |  _ \ _   _ _______| | ___   / ___| __ _ _ __ ___   ___ ">
+	mov xyUI.X, 10
+	mov xyUI.Y, 9
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+	mWrite <" \___ \| '_ \ / _` | |/ / _ \ | |_) | | | |_  /_  / |/ _ \ | |  _ / _` | '_ ` _ \ / _ \">
+	mov xyUI.X, 10
+	mov xyUI.Y, 10
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+	mWrite <"  ___) | | | | (_| |   <  __/ |  __/| |_| |/ / / /| |  __/ | |_| | (_| | | | | | |  __/">
+	mov xyUI.X, 10
+	mov xyUI.Y, 11
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+	mWrite <" |____/|_| |_|\__,_|_|\_\___| |_|    \__,_/___/___|_|\___|  \____|\__,_|_| |_| |_|\___|">
+	mov xyUI.X, 10
+	mov xyUI.Y, 12
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
     call WaitMsg
 
 SELECT_STAGE:
@@ -107,7 +130,7 @@ INPUT:
     .ELSEIF ax == 1372h ; R
         jmp TITLE_SCREEN
 	.ELSEIF ax == 011Bh ; ESC 
-		jmp END_FUNC 
+		jmp END_FUNC
 	.ELSE 
 		jmp NEXT_LOOP
 	.ENDIF
@@ -149,9 +172,9 @@ CHECK_INTERSECTING:
     .ENDIF
 
 ; check collision with boxes
-	.IF boxLen == 0
-		jmp CHECK_BORDER
-	.ENDIF
+    .IF boxLen == 0
+        jmp CHECK_BORDER
+    .ENDIF
     mov ecx, boxLen
     mov esi, 0
 BOX_COLLISION_CHECK:
@@ -242,7 +265,7 @@ ORI_VAL:
     .IF bl == 3
         add dx, -1
     .ENDIF
- 
+
 ; move box
     pop esi
     .IF bl == 0
@@ -337,6 +360,8 @@ APPLE_EATEN:
         mov snake[eax].dir, bl    
         inc snakeLen
         mov apples[esi].eaten, 1
+        mov apples[esi].pos.X, 1
+        mov apples[esi].pos.Y, 1
     .ENDIF
 CONTINUE_APPLE:
     add esi, TYPE apples 
@@ -484,10 +509,37 @@ LOOP_GRAVITY:
 SUPPORTED:
 NEXT_LOOP:
 	jmp MAIN_LOOP 
-	 
+
 FINISH:
     call ClrScr
-    mWrite <"Congratulations!", 0dh, 0ah>
+    
+    mov xyUI.X, 10
+    mov xyUI.Y, 7
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   ____                            _         _       _   _                 ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 8
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  / ___|___  _ __   __ _ _ __ __ _| |_ _   _| | __ _| |_(_) ___  _ __  ___ ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 9
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |   / _ \| '_ \ / _` | '__/ _` | __| | | | |/ _` | __| |/ _ \| '_ \/ __|">
+    mov xyUI.X, 10
+    mov xyUI.Y, 10
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |__| (_) | | | | (_| | | | (_| | |_| |_| | | (_| | |_| | (_) | | | \__ \">
+    mov xyUI.X, 10
+    mov xyUI.Y, 11
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  \____\___/|_| |_|\__, |_|  \__,_|\__|\__,_|_|\__,_|\__|_|\___/|_| |_|___/">
+    mov xyUI.X, 10
+    mov xyUI.Y, 12
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"                   |___/                                                   ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 13
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
     call WaitMsg
 
 ; jump to stage selection page
@@ -495,26 +547,98 @@ FINISH:
 
 GAMEOVER:
     call ClrScr
-    mWrite <"GAMEOVER", 0dh, 0ah>
+    
+    mov xyUI.X, 10
+    mov xyUI.Y, 7
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   ____    _    __  __ _____    _____     _______ ____  ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 8
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  / ___|  / \  |  \/  | ____|  / _ \ \   / / ____|  _ \ ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 9
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |  _  / _ \ | |\/| |  _|   | | | \ \ / /|  _| | |_) |">
+    mov xyUI.X, 10
+    mov xyUI.Y, 10
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |_| |/ ___ \| |  | | |___  | |_| |\ V / | |___|  _ < ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 11
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  \____/_/   \_\_|  |_|_____|  \___/  \_/  |_____|_| \_\">
+    mov xyUI.X, 10
+    mov xyUI.Y, 12
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"text">
     call WaitMsg
     jmp SELECT_STAGE
 
 END_FUNC: 
     call ClrScr
-	call WaitMsg 
+
+    mov xyUI.X, 20
+    mov xyUI.Y, 7
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  _____ _               _____           _ "> 
+    mov xyUI.X, 20
+    mov xyUI.Y, 8
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" |_   _| |__   ___     | ____|_ __   __| |"> 
+    mov xyUI.X, 20
+    mov xyUI.Y, 9
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   | | | '_ \ / _ \    |  _| | '_ \ / _` |"> 
+    mov xyUI.X, 20
+    mov xyUI.Y, 10
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   | | | | | |  __/    | |___| | | | (_| |"> 
+    mov xyUI.X, 20
+    mov xyUI.Y, 11
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   |_| |_| |_|\___|    |_____|_| |_|\__,_|">
+    mov xyUI.X, 20
+    mov xyUI.Y, 12
+    invoke SetConsoleCursorPosition, consoleHandle, xyUI
+	call WaitMsg
 	exit
 main ENDP 
 
 Select_Load_Stage PROC
 chooseStage:
-	INVOKE SetConsoleCursorPosition, consoleHandle, stageLine0
-	mWrite <"SNAKE PUZZLE GAME , made by group 28">
-	INVOKE SetConsoleCursorPosition, consoleHandle, stageLine1
-	mWrite <"choose your stage (eg 01, 02, ..., 99) : ">
+    mov xyUI.X, 10
+	mov xyUI.Y, 7
+	INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"   ____ _                           __   __                 ____  _                    ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 8
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  / ___| |__   ___   ___  ___  ___  \ \ / /__  _   _ _ __  / ___|| |_ __ _  __ _  ___  ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 9
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |   | '_ \ / _ \ / _ \/ __|/ _ \  \ V / _ \| | | | '__| \___ \| __/ _` |/ _` |/ _ \ ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 10
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <" | |___| | | | (_) | (_) \__ \  __/   | | (_) | |_| | |     ___) | || (_| | (_| |  __/ ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 11
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"  \____|_| |_|\___/ \___/|___/\___|   |_|\___/ \__,_|_|    |____/ \__\__,_|\__, |\___| ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 12
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"                                                                           |___/       ">
+    mov xyUI.X, 10
+    mov xyUI.Y, 14
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
+    mWrite <"(eg 01, 02, ..., 99) : ">
 	mov edx, offset fileInput
 	mov ecx, sizeof fileInput
 	call ReadString
-	INVOKE SetConsoleCursorPosition, consoleHandle, stageLine2
+
 	mov ecx, sizeof fileInput 
 	mov edi, offset fileInput
 	mov al, 0
@@ -525,6 +649,9 @@ chooseStage:
 	cmp ebx, 2
 	jne file_not_ok
 	
+    mov xyUI.X, 10
+    mov xyUI.Y, 15
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
 	; handle full filename
 	mov al, fileInput[0]
 	mov filename[15], al
@@ -536,7 +663,7 @@ chooseStage:
 	mWrite <"Loading Stage : ">
 	mov edx, offset stageText
 	call WriteString
-	mWrite <", ">
+	mWrite <". ">
 	mov edx, offset filename
 	call OpenInputFile
 	mov fileHandle, eax
@@ -544,7 +671,9 @@ chooseStage:
 	jne file_ok
 file_not_ok:
 	call ClrScr
-	INVOKE SetConsoleCursorPosition, consoleHandle, stageLine2
+	mov xyUI.X, 10
+    mov xyUI.Y, 13
+    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
 	mWrite <"Stage not found.",0dh,0ah>
 	jmp chooseStage
 file_ok:
@@ -699,9 +828,19 @@ notNUM:
 	je caseNextPos
 ; nextLine
 	xor esi, esi
-	add edx, 9
 	dec ecx
 	inc ebx
+    .IF edx <= 9
+        mov edx,10
+    .ELSEIF edx <= 19
+        mov edx,20
+    .ELSEIF edx <= 29
+        mov edx,30
+    .ELSEIF edx <= 39
+        mov edx,40
+    .ELSE
+        mov edx,50
+    .ENDIF
 	cmp dx, 40 ; handle trap data
 	jne looping
 	push edx
