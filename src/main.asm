@@ -359,6 +359,20 @@ WN_SUPP:
 		.IF bh == 2
 			jmp MOVE_ON
 		.ENDIF
+; check box supported by snake
+		mov ecx, snakeLen
+		mov esi, 0
+BS_SUPP:
+		cmp ax, snake[esi].pos.X 
+		jne CONT_BS_SUPP
+		cmp dx, snake[esi].pos.Y 
+		jne CONT_BS_SUPP
+		
+		jmp MOVE_ON
+CONT_BS_SUPP:
+		add esi, SIZEOF BLOCK
+		loop BS_SUPP
+		
 ; check box supported by apple
 		mov ecx, appleLen
 		mov esi, 0
@@ -376,7 +390,21 @@ CONT_BA_SUPP:
 		add esi, SIZEOF APPLE
 		loop BA_SUPP
 		
-APPLE_GRAVITY:
+; check box supported by box
+		mov ecx, boxLen
+		mov esi, 0
+BB_SUPP:
+		cmp ax, boxes[esi].X
+		jne CONT_BB_SUPP
+		cmp dx, boxes[esi].Y
+		jne CONT_BB_SUPP
+		
+		jmp MOVE_ON
+CONT_BB_SUPP:
+		add esi, SIZEOF COORD
+		loop BB_SUPP
+		
+BOX_GRAVITY:
 		mov esi, update_box
 		add boxes[esi].Y, 1
 		.IF dx >= 1Ch
@@ -406,56 +434,61 @@ T_SUPP:
 	jne CONT_T_SUPP
 	
 	mov update_box, esi
+	mov update, 1
 	jmp CHECK_BOX_SUPP_T
 CONT_T_SUPP:
 	add esi, SIZEOF COORD
 	loop T_SUPP
 
 ; ---------------
+	.IF update == 1
 CHECK_BOX_SUPP_T:
-	push eax
-	push edx
+		mov update, 0
+		push eax
+		push edx
 WN_SUPP_T:
-	mov esi, update_box
-	mov ax, boxes[esi].X 
-	mov dx, boxes[esi].Y
-	inc dx
-	INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
-	.IF bh == 1 
-		jmp MOVE_ON_T
-	.ENDIF
-	.IF bh == 2
-		jmp MOVE_ON_T
-	.ENDIF
-; check box supported by apple
-	mov ecx, appleLen
-	mov esi, 0
+		mov esi, update_box
+		mov ax, boxes[esi].X 
+		mov dx, boxes[esi].Y
+		inc dx
+		INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
+		.IF bh == 1 
+			jmp MOVE_ON_T
+		.ENDIF
+		.IF bh == 2
+			jmp MOVE_ON_T
+		.ENDIF
+		; check box supported by apple
+		mov ecx, appleLen
+		mov esi, 0
 BA_SUPP_T:
-	mov bh, apples[esi].eaten
-	.IF bh == 0
-		cmp ax, apples[esi].pos.X
-		jne CONT_BA_SUPP_T
-		cmp dx, apples[esi].pos.Y
-		jne CONT_BA_SUPP_T
-		
-		jmp MOVE_ON_T
-	.ENDIF
+		mov bh, apples[esi].eaten
+		.IF bh == 0
+			cmp ax, apples[esi].pos.X
+			jne CONT_BA_SUPP_T
+			cmp dx, apples[esi].pos.Y
+			jne CONT_BA_SUPP_T
+			
+			jmp MOVE_ON_T
+		.ENDIF
 CONT_BA_SUPP_T:
-	add esi, SIZEOF APPLE
-	loop BA_SUPP_T
+		add esi, SIZEOF APPLE
+		loop BA_SUPP_T
+	
 	
 APPLE_GRAVITY_T:
-	mov esi, update_box
-	add boxes[esi].Y, 1
-	.IF dx >= 1Ch
-		jmp MOVE_ON_T
-	.ENDIF
-	jmp WN_SUPP_T
+		mov esi, update_box
+		add boxes[esi].Y, 1
+		.IF dx >= 1Ch
+			jmp MOVE_ON_T
+		.ENDIF
+		jmp WN_SUPP_T
 
 MOVE_ON_T:
-	pop edx
-	pop eax
+		pop edx
+		pop eax
 ;----------------------
+	.ENDIF
 
 NO_UPDATE:   
     ; check apple
