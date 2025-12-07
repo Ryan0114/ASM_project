@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:06:07
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:21:00
 src\main.asm						     Page 1 - 1
 
 
@@ -142,7 +142,6 @@ src\main.asm						     Page 1 - 1
 				; title screen
  0000000C			TITLE_SCREEN:
  0000000C  E8 00000000 E	    call ClrScr
-					
 				    INVOKE SetConsoleTextAttribute, consoleHandle, 0Ah
  0000001E  66| C7 05			mov xyUI.X, 10
 	   00001635 R
@@ -317,7 +316,7 @@ src\main.asm						     Page 1 - 1
  0000013E			SELECT_STAGE:
 				; stage selection and load stage
  0000013E  E8 00000000 E	    call ClrScr
- 00000143  E8 00000B35		    call Select_Load_Stage 
+ 00000143  E8 00000B47		    call Select_Load_Stage 
  00000148  E8 00000000 E	    call WaitMsg
 
  0000014D			MAIN_LOOP: 
@@ -365,9 +364,9 @@ src\main.asm						     Page 1 - 1
 				    .ELSEIF ax == 1372h ; R
  00000249  E9 FFFFFDBE		        jmp TITLE_SCREEN
 					.ELSEIF ax == 011Bh ; ESC 
- 00000256  E9 00000903				jmp END_FUNC 
+ 00000256  E9 00000915				jmp END_FUNC
 					.ELSE 
- 0000025D  E9 00000682				jmp NEXT_LOOP
+ 0000025D  E9 00000694				jmp NEXT_LOOP
 					.ENDIF
 
 				; check if the direction is valid
@@ -403,15 +402,15 @@ src\main.asm						     Page 1 - 1
 				; invoke check intersecting
 				    INVOKE CheckIntersection, ax, dx, ADDR snake, snakeLen, ADDR obstacles, obstacleLen
 				    .IF bh == 1 
- 000002D4  E9 0000075C		        jmp GAMEOVER 
+ 000002D4  E9 0000076E		        jmp GAMEOVER 
 				    .ELSEIF bh == 2
  000002E0  E9 000003A0		        jmp NO_UPDATE
 				    .ENDIF
 
 				; check collision with boxes
-					.IF boxLen == 0
- 000002EE  E9 0000016A				jmp CHECK_BORDER
-					.ENDIF
+				    .IF boxLen == 0
+ 000002EE  E9 0000016A		        jmp CHECK_BORDER
+				    .ENDIF
  000002F3  8B 0D 00001620 R	    mov ecx, boxLen
  000002F9  BE 00000000		    mov esi, 0
  000002FE			BOX_COLLISION_CHECK:
@@ -510,7 +509,7 @@ src\main.asm						     Page 1 - 1
 				    .IF bl == 3
  00000407  66| 83 C2 FF		        add dx, -1
 				    .ENDIF
-				 
+
 				; move box
  0000040B  5E			    pop esi
 				    .IF bl == 0
@@ -738,12 +737,12 @@ src\main.asm						     Page 1 - 1
 	   00001416 R
  000006A0  66| 3B 86		        cmp ax, apples[esi].pos.X
 	   00001465 R
- 000006A7  75 4C		        jne CONTINUE_APPLE
+ 000006A7  75 5E		        jne CONTINUE_APPLE
  000006A9  66| A1		        mov ax, snake[0].pos.Y
 	   00001418 R
  000006AF  66| 3B 86		        cmp ax, apples[esi].pos.Y
 	   00001467 R
- 000006B6  75 3D		        jne CONTINUE_APPLE
+ 000006B6  75 4F		        jne CONTINUE_APPLE
 
  000006B8  A1 00001461 R	        mov eax, snakeLen
  000006BD  6B C0 05		        imul eax, TYPE snake
@@ -760,30 +759,36 @@ src\main.asm						     Page 1 - 1
  000006E8  FF 05 00001461 R	        inc snakeLen
  000006EE  C6 86 00001469 R	        mov apples[esi].eaten, 1
 	   01
+ 000006F5  66| C7 86		        mov apples[esi].pos.X, 1
+	   00001465 R
+	   0001
+ 000006FE  66| C7 86		        mov apples[esi].pos.Y, 1
+	   00001467 R
+	   0001
 				    .ENDIF
- 000006F5			CONTINUE_APPLE:
- 000006F5  83 C6 05		    add esi, TYPE apples 
- 000006F8  E2 96		    loop APPLE_EATEN
+ 00000707			CONTINUE_APPLE:
+ 00000707  83 C6 05		    add esi, TYPE apples 
+ 0000070A  E2 84		    loop APPLE_EATEN
 
- 000006FA			CHECK_GOAL:
- 000006FA  66| A1		    mov ax, snake[0].pos.X
+ 0000070C			CHECK_GOAL:
+ 0000070C  66| A1		    mov ax, snake[0].pos.X
 	   00001416 R
- 00000700  66| 3B 05		    cmp ax, goal.X
+ 00000712  66| 3B 05		    cmp ax, goal.X
 	   00001624 R
- 00000707  75 17		    jne CHECK_SUPP
- 00000709  66| A1		    mov ax, snake[0].pos.Y
+ 00000719  75 17		    jne CHECK_SUPP
+ 0000071B  66| A1		    mov ax, snake[0].pos.Y
 	   00001418 R
- 0000070F  66| 3B 05		    cmp ax, goal.Y
+ 00000721  66| 3B 05		    cmp ax, goal.Y
 	   00001626 R
- 00000716  75 08		    jne CHECK_SUPP
+ 00000728  75 08		    jne CHECK_SUPP
 
- 00000718  E9 000001CC		    jmp FINISH
+ 0000072A  E9 000001CC		    jmp FINISH
 				    
 
 				; check if supported by apples or obstacles 
- 0000071D  66| 33 D2		    xor dx, dx ; store whether snake is supported only by harmful obstacle 
- 00000720			CHECK_SUPP:
- 00000720  E8 00000000 E	    call ClrScr 
+ 0000072F  66| 33 D2		    xor dx, dx ; store whether snake is supported only by harmful obstacle 
+ 00000732			CHECK_SUPP:
+ 00000732  E8 00000000 E	    call ClrScr 
 
 				; plot snake
 				    INVOKE PlotSnake, consoleHandle, ADDR snake, snakeLen, ADDR written
@@ -798,138 +803,137 @@ src\main.asm						     Page 1 - 1
 				    INVOKE PlotBox, consoleHandle, ADDR boxes, boxLen, ADDR written    
 
 				; plot goal
- 00000791  60			    pushad
+ 000007A3  60			    pushad
 				    INVOKE SetConsoleTextAttribute, consoleHandle, 09h
 				    INVOKE SetConsoleCursorPosition, consoleHandle, goal 
 				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
 				    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
- 000007D6  61			    popad
+ 000007E8  61			    popad
 
- 000007D7  8B 0D 00001461 R	    mov ecx, snakeLen
- 000007DD  BE 00000000		    mov esi, 0
- 000007E2			LOOP_SUPP:
- 000007E2  66| 8B 86		    mov ax, snake[esi].pos.X
+ 000007E9  8B 0D 00001461 R	    mov ecx, snakeLen
+ 000007EF  BE 00000000		    mov esi, 0
+ 000007F4			LOOP_SUPP:
+ 000007F4  66| 8B 86		    mov ax, snake[esi].pos.X
 	   00001416 R
- 000007E9  66| 8B 9E		    mov bx, snake[esi].pos.Y
+ 000007FB  66| 8B 9E		    mov bx, snake[esi].pos.Y
 	   00001418 R
- 000007F0  66| 43		    inc bx
- 000007F2  51			    push ecx
- 000007F3  56			    push esi
+ 00000802  66| 43		    inc bx
+ 00000804  51			    push ecx
+ 00000805  56			    push esi
 
- 000007F4  8B 0D 000015E0 R	    mov ecx, obstacleLen
- 000007FA  BE 00000000		    mov esi, 0
- 000007FF			SUPP_OBST:
- 000007FF  66| 3B 86		    cmp ax, obstacles[esi].pos.X
+ 00000806  8B 0D 000015E0 R	    mov ecx, obstacleLen
+ 0000080C  BE 00000000		    mov esi, 0
+ 00000811			SUPP_OBST:
+ 00000811  66| 3B 86		    cmp ax, obstacles[esi].pos.X
 	   000014B4 R
- 00000806  75 1C		    jne CONT_OBST
- 00000808  66| 3B 9E		    cmp bx, obstacles[esi].pos.Y
+ 00000818  75 1C		    jne CONT_OBST
+ 0000081A  66| 3B 9E		    cmp bx, obstacles[esi].pos.Y
 	   000014B6 R
- 0000080F  75 13		    jne CONT_OBST
+ 00000821  75 13		    jne CONT_OBST
 
- 00000811  8A 96 000014B8 R	    mov dl, obstacles[esi].harmful
+ 00000823  8A 96 000014B8 R	    mov dl, obstacles[esi].harmful
 				    .IF dl == 0
- 0000081B  E9 000000C4		        jmp SUPPORTED
+ 0000082D  E9 000000C4		        jmp SUPPORTED
 				    .ELSE
- 00000822  B6 01		        mov dh, 1
+ 00000834  B6 01		        mov dh, 1
 				    .ENDIF
 
 
- 00000824			CONT_OBST:
- 00000824  83 C6 05		    add esi, TYPE obstacles
- 00000827  E2 D6		    loop SUPP_OBST
+ 00000836			CONT_OBST:
+ 00000836  83 C6 05		    add esi, TYPE obstacles
+ 00000839  E2 D6		    loop SUPP_OBST
 				    
 				    
- 00000829  8B 0D 000014B0 R	    mov ecx, appleLen 
- 0000082F  BE 00000000		    mov esi, 0
- 00000834			SUPP_APPLE:
+ 0000083B  8B 0D 000014B0 R	    mov ecx, appleLen 
+ 00000841  BE 00000000		    mov esi, 0
+ 00000846			SUPP_APPLE:
 				    .IF apples[esi].eaten == 0
- 0000083D  66| 3B 86		        cmp ax, apples[esi].pos.X
+ 0000084F  66| 3B 86		        cmp ax, apples[esi].pos.X
 	   00001465 R
- 00000844  75 0E		        jne CONT_APPLE_SUPP
- 00000846  66| 3B 9E		        cmp bx, apples[esi].pos.Y
+ 00000856  75 0E		        jne CONT_APPLE_SUPP
+ 00000858  66| 3B 9E		        cmp bx, apples[esi].pos.Y
 	   00001467 R
- 0000084D  75 05		        jne CONT_APPLE_SUPP
+ 0000085F  75 05		        jne CONT_APPLE_SUPP
 
- 0000084F  E9 00000090		        jmp SUPPORTED
+ 00000861  E9 00000090		        jmp SUPPORTED
 				    .ENDIF
 
- 00000854			CONT_APPLE_SUPP:
- 00000854  83 C6 05		    add esi, TYPE apples 
- 00000857  E2 DB		    loop SUPP_APPLE
+ 00000866			CONT_APPLE_SUPP:
+ 00000866  83 C6 05		    add esi, TYPE apples 
+ 00000869  E2 DB		    loop SUPP_APPLE
 
 				; ---------- check box support ------------
 					.IF boxLen == 0
- 00000862  EB 24				jmp SUPP_GOAL
+ 00000874  EB 24				jmp SUPP_GOAL
 					.ENDIF
- 00000864  8B 0D 00001620 R	    mov ecx, boxLen
- 0000086A  BE 00000000		    mov esi, 0
- 0000086F			SUPP_BOX:
- 0000086F  66| 3B 86		    cmp ax, boxes[esi].X
+ 00000876  8B 0D 00001620 R	    mov ecx, boxLen
+ 0000087C  BE 00000000		    mov esi, 0
+ 00000881			SUPP_BOX:
+ 00000881  66| 3B 86		    cmp ax, boxes[esi].X
 	   000015E4 R
- 00000876  75 0B		    jne CONT_BOX_SUPP
- 00000878  66| 3B 9E		    cmp bx, boxes[esi].Y
+ 00000888  75 0B		    jne CONT_BOX_SUPP
+ 0000088A  66| 3B 9E		    cmp bx, boxes[esi].Y
 	   000015E6 R
- 0000087F  75 02		    jne CONT_BOX_SUPP
+ 00000891  75 02		    jne CONT_BOX_SUPP
 
- 00000881  EB 61		    jmp SUPPORTED
+ 00000893  EB 61		    jmp SUPPORTED
 
- 00000883			CONT_BOX_SUPP:
- 00000883  83 C6 04		    add esi, TYPE boxes
- 00000886  E2 E7		    loop SUPP_BOX
+ 00000895			CONT_BOX_SUPP:
+ 00000895  83 C6 04		    add esi, TYPE boxes
+ 00000898  E2 E7		    loop SUPP_BOX
 
 				; ---------- check goal support ----------; 374
- 00000888			SUPP_GOAL:
- 00000888  66| 3B 05		    cmp ax, goal.X
+ 0000089A			SUPP_GOAL:
+ 0000089A  66| 3B 05		    cmp ax, goal.X
 	   00001624 R
- 0000088F  75 0B		    jne CONT_SUPP
- 00000891  66| 3B 1D		    cmp bx, goal.Y
+ 000008A1  75 0B		    jne CONT_SUPP
+ 000008A3  66| 3B 1D		    cmp bx, goal.Y
 	   00001626 R
- 00000898  75 02		    jne CONT_SUPP
+ 000008AA  75 02		    jne CONT_SUPP
 
- 0000089A  EB 48		    jmp SUPPORTED
+ 000008AC  EB 48		    jmp SUPPORTED
 
 				 
- 0000089C			CONT_SUPP:
- 0000089C  5E			    pop esi
- 0000089D  59			    pop ecx
- 0000089E  83 C6 05		    add esi, TYPE snake
- 000008A1  49			    dec ecx
- 000008A2  0F 85 FFFFFF3A	    jnz near PTR LOOP_SUPP
+ 000008AE			CONT_SUPP:
+ 000008AE  5E			    pop esi
+ 000008AF  59			    pop ecx
+ 000008B0  83 C6 05		    add esi, TYPE snake
+ 000008B3  49			    dec ecx
+ 000008B4  0F 85 FFFFFF3A	    jnz near PTR LOOP_SUPP
 
 				    .IF dh == 1
- 000008AD  E9 00000183		        jmp GAMEOVER
+ 000008BF  E9 00000183		        jmp GAMEOVER
 				    .ENDIF
 				   
 				; if not supported, then apply gravity tell supported or full into the void (Y > threshold)
- 000008B2			GRAVITY:
- 000008B2  8B 0D 00001461 R	    mov ecx, snakeLen
- 000008B8  BE 00000000		    mov esi, 0 
- 000008BD			LOOP_GRAVITY:
- 000008BD  66| FF 86		    inc snake[esi].pos.Y    
+ 000008C4			GRAVITY:
+ 000008C4  8B 0D 00001461 R	    mov ecx, snakeLen
+ 000008CA  BE 00000000		    mov esi, 0 
+ 000008CF			LOOP_GRAVITY:
+ 000008CF  66| FF 86		    inc snake[esi].pos.Y    
 	   00001418 R
 				    .IF snake[esi].pos.Y >= 1Ch
- 000008CE  E9 00000162		        jmp GAMEOVER 
+ 000008E0  E9 00000162		        jmp GAMEOVER 
 				    .ENDIF
 
- 000008D3  83 C6 05		    add esi, TYPE snake
- 000008D6  E2 E5		    loop LOOP_GRAVITY
+ 000008E5  83 C6 05		    add esi, TYPE snake
+ 000008E8  E2 E5		    loop LOOP_GRAVITY
 
- 000008D8  6A 64		    push 100
- 000008DA  E8 00000000 E	    call Sleep
+ 000008EA  6A 64		    push 100
+ 000008EC  E8 00000000 E	    call Sleep
 
- 000008DF  E9 FFFFFE3C		    jmp CHECK_SUPP
+ 000008F1  E9 FFFFFE3C		    jmp CHECK_SUPP
 
- 000008E4			SUPPORTED:
- 000008E4			NEXT_LOOP:
- 000008E4  E9 FFFFF864			jmp MAIN_LOOP 
-					 
- 000008E9			FINISH:
- 000008E9  E8 00000000 E	    call ClrScr
-					
- 000008EE  66| C7 05			mov xyUI.X, 10
+ 000008F6			SUPPORTED:
+ 000008F6			NEXT_LOOP:
+ 000008F6  E9 FFFFF852			jmp MAIN_LOOP 
+
+ 000008FB			FINISH:
+ 000008FB  E8 00000000 E	    call ClrScr
+ 00000900  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 000008F7  66| C7 05		    mov xyUI.Y, 7
+ 00000909  66| C7 05		    mov xyUI.Y, 7
 	   00001637 R
 	   0007
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -951,15 +955,15 @@ src\main.asm						     Page 1 - 1
 	   20 20 20 20 20
 	   20 20 20 20 20
 	   00
- 00000911		     1		.code
- 00000911  52		     1		push	edx
- 00000912  BA 000017F1 R     1		mov	edx,OFFSET ??0005
- 00000917  E8 00000000 E     1		call	WriteString
- 0000091C  5A		     1		pop	edx
- 0000091D  66| C7 05		    mov xyUI.X, 10
+ 00000923		     1		.code
+ 00000923  52		     1		push	edx
+ 00000924  BA 000017F1 R     1		mov	edx,OFFSET ??0005
+ 00000929  E8 00000000 E     1		call	WriteString
+ 0000092E  5A		     1		pop	edx
+ 0000092F  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000926  66| C7 05		    mov xyUI.Y, 8
+ 00000938  66| C7 05		    mov xyUI.Y, 8
 	   00001637 R
 	   0008
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -981,15 +985,15 @@ src\main.asm						     Page 1 - 1
 	   5F 20 5F 5F 20
 	   20 5F 5F 5F 20
 	   00
- 00000940		     1		.code
- 00000940  52		     1		push	edx
- 00000941  BA 0000183D R     1		mov	edx,OFFSET ??0006
- 00000946  E8 00000000 E     1		call	WriteString
- 0000094B  5A		     1		pop	edx
- 0000094C  66| C7 05		    mov xyUI.X, 10
+ 00000952		     1		.code
+ 00000952  52		     1		push	edx
+ 00000953  BA 0000183D R     1		mov	edx,OFFSET ??0006
+ 00000958  E8 00000000 E     1		call	WriteString
+ 0000095D  5A		     1		pop	edx
+ 0000095E  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000955  66| C7 05		    mov xyUI.Y, 9
+ 00000967  66| C7 05		    mov xyUI.Y, 9
 	   00001637 R
 	   0009
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1011,15 +1015,15 @@ src\main.asm						     Page 1 - 1
 	   20 27 5F 20 5C
 	   2F 20 5F 5F 7C
 	   00
- 0000096F		     1		.code
- 0000096F  52		     1		push	edx
- 00000970  BA 00001889 R     1		mov	edx,OFFSET ??0007
- 00000975  E8 00000000 E     1		call	WriteString
- 0000097A  5A		     1		pop	edx
- 0000097B  66| C7 05		    mov xyUI.X, 10
+ 00000981		     1		.code
+ 00000981  52		     1		push	edx
+ 00000982  BA 00001889 R     1		mov	edx,OFFSET ??0007
+ 00000987  E8 00000000 E     1		call	WriteString
+ 0000098C  5A		     1		pop	edx
+ 0000098D  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000984  66| C7 05		    mov xyUI.Y, 10
+ 00000996  66| C7 05		    mov xyUI.Y, 10
 	   00001637 R
 	   000A
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1041,15 +1045,15 @@ src\main.asm						     Page 1 - 1
 	   20 7C 20 7C 20
 	   5C 5F 5F 20 5C
 	   00
- 0000099E		     1		.code
- 0000099E  52		     1		push	edx
- 0000099F  BA 000018D5 R     1		mov	edx,OFFSET ??0008
- 000009A4  E8 00000000 E     1		call	WriteString
- 000009A9  5A		     1		pop	edx
- 000009AA  66| C7 05		    mov xyUI.X, 10
+ 000009B0		     1		.code
+ 000009B0  52		     1		push	edx
+ 000009B1  BA 000018D5 R     1		mov	edx,OFFSET ??0008
+ 000009B6  E8 00000000 E     1		call	WriteString
+ 000009BB  5A		     1		pop	edx
+ 000009BC  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 000009B3  66| C7 05		    mov xyUI.Y, 11
+ 000009C5  66| C7 05		    mov xyUI.Y, 11
 	   00001637 R
 	   000B
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1071,15 +1075,15 @@ src\main.asm						     Page 1 - 1
 	   5F 7C 20 7C 5F
 	   7C 5F 5F 5F 2F
 	   00
- 000009CD		     1		.code
- 000009CD  52		     1		push	edx
- 000009CE  BA 00001921 R     1		mov	edx,OFFSET ??0009
- 000009D3  E8 00000000 E     1		call	WriteString
- 000009D8  5A		     1		pop	edx
- 000009D9  66| C7 05		    mov xyUI.X, 10
+ 000009DF		     1		.code
+ 000009DF  52		     1		push	edx
+ 000009E0  BA 00001921 R     1		mov	edx,OFFSET ??0009
+ 000009E5  E8 00000000 E     1		call	WriteString
+ 000009EA  5A		     1		pop	edx
+ 000009EB  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 000009E2  66| C7 05		    mov xyUI.Y, 12
+ 000009F4  66| C7 05		    mov xyUI.Y, 12
 	   00001637 R
 	   000C
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1101,30 +1105,29 @@ src\main.asm						     Page 1 - 1
 	   20 20 20 20 20
 	   20 20 20 20 20
 	   00
- 000009FC		     1		.code
- 000009FC  52		     1		push	edx
- 000009FD  BA 0000196D R     1		mov	edx,OFFSET ??000A
- 00000A02  E8 00000000 E     1		call	WriteString
- 00000A07  5A		     1		pop	edx
- 00000A08  66| C7 05		    mov xyUI.X, 10
+ 00000A0E		     1		.code
+ 00000A0E  52		     1		push	edx
+ 00000A0F  BA 0000196D R     1		mov	edx,OFFSET ??000A
+ 00000A14  E8 00000000 E     1		call	WriteString
+ 00000A19  5A		     1		pop	edx
+ 00000A1A  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000A11  66| C7 05		    mov xyUI.Y, 13
+ 00000A23  66| C7 05		    mov xyUI.Y, 13
 	   00001637 R
 	   000D
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
- 00000A2B  E8 00000000 E	    call WaitMsg
+ 00000A3D  E8 00000000 E	    call WaitMsg
 
 				; jump to stage selection page
- 00000A30  E9 FFFFF709		    jmp SELECT_STAGE
+ 00000A42  E9 FFFFF6F7		    jmp SELECT_STAGE
 
- 00000A35			GAMEOVER:
- 00000A35  E8 00000000 E	    call ClrScr
-					
- 00000A3A  66| C7 05		    mov xyUI.X, 10
+ 00000A47			GAMEOVER:
+ 00000A47  E8 00000000 E	    call ClrScr
+ 00000A4C  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000A43  66| C7 05		    mov xyUI.Y, 7
+ 00000A55  66| C7 05		    mov xyUI.Y, 7
 	   00001637 R
 	   0007
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1142,15 +1145,15 @@ src\main.asm						     Page 1 - 1
 	   5F 5F 5F 5F 20
 	   5F 5F 5F 5F 20
 	   20 00
- 00000A5D		     1		.code
- 00000A5D  52		     1		push	edx
- 00000A5E  BA 000019B9 R     1		mov	edx,OFFSET ??000B
- 00000A63  E8 00000000 E     1		call	WriteString
- 00000A68  5A		     1		pop	edx
- 00000A69  66| C7 05		    mov xyUI.X, 10
+ 00000A6F		     1		.code
+ 00000A6F  52		     1		push	edx
+ 00000A70  BA 000019B9 R     1		mov	edx,OFFSET ??000B
+ 00000A75  E8 00000000 E     1		call	WriteString
+ 00000A7A  5A		     1		pop	edx
+ 00000A7B  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000A72  66| C7 05		    mov xyUI.Y, 8
+ 00000A84  66| C7 05		    mov xyUI.Y, 8
 	   00001637 R
 	   0008
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1168,15 +1171,15 @@ src\main.asm						     Page 1 - 1
 	   5F 5F 5F 5F 7C
 	   20 20 5F 20 5C
 	   20 00
- 00000A8C		     1		.code
- 00000A8C  52		     1		push	edx
- 00000A8D  BA 000019F2 R     1		mov	edx,OFFSET ??000C
- 00000A92  E8 00000000 E     1		call	WriteString
- 00000A97  5A		     1		pop	edx
- 00000A98  66| C7 05		    mov xyUI.X, 10
+ 00000A9E		     1		.code
+ 00000A9E  52		     1		push	edx
+ 00000A9F  BA 000019F2 R     1		mov	edx,OFFSET ??000C
+ 00000AA4  E8 00000000 E     1		call	WriteString
+ 00000AA9  5A		     1		pop	edx
+ 00000AAA  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000AA1  66| C7 05		    mov xyUI.Y, 9
+ 00000AB3  66| C7 05		    mov xyUI.Y, 9
 	   00001637 R
 	   0009
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1194,15 +1197,15 @@ src\main.asm						     Page 1 - 1
 	   20 5F 7C 20 7C
 	   20 7C 5F 29 20
 	   7C 00
- 00000ABB		     1		.code
- 00000ABB  52		     1		push	edx
- 00000ABC  BA 00001A2B R     1		mov	edx,OFFSET ??000D
- 00000AC1  E8 00000000 E     1		call	WriteString
- 00000AC6  5A		     1		pop	edx
- 00000AC7  66| C7 05		    mov xyUI.X, 10
+ 00000ACD		     1		.code
+ 00000ACD  52		     1		push	edx
+ 00000ACE  BA 00001A2B R     1		mov	edx,OFFSET ??000D
+ 00000AD3  E8 00000000 E     1		call	WriteString
+ 00000AD8  5A		     1		pop	edx
+ 00000AD9  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000AD0  66| C7 05		    mov xyUI.Y, 10
+ 00000AE2  66| C7 05		    mov xyUI.Y, 10
 	   00001637 R
 	   000A
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1220,15 +1223,15 @@ src\main.asm						     Page 1 - 1
 	   7C 5F 5F 5F 7C
 	   20 20 5F 20 3C
 	   20 00
- 00000AEA		     1		.code
- 00000AEA  52		     1		push	edx
- 00000AEB  BA 00001A64 R     1		mov	edx,OFFSET ??000E
- 00000AF0  E8 00000000 E     1		call	WriteString
- 00000AF5  5A		     1		pop	edx
- 00000AF6  66| C7 05		    mov xyUI.X, 10
+ 00000AFC		     1		.code
+ 00000AFC  52		     1		push	edx
+ 00000AFD  BA 00001A64 R     1		mov	edx,OFFSET ??000E
+ 00000B02  E8 00000000 E     1		call	WriteString
+ 00000B07  5A		     1		pop	edx
+ 00000B08  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000AFF  66| C7 05		    mov xyUI.Y, 11
+ 00000B11  66| C7 05		    mov xyUI.Y, 11
 	   00001637 R
 	   000B
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1246,36 +1249,35 @@ src\main.asm						     Page 1 - 1
 	   5F 5F 5F 5F 7C
 	   5F 7C 20 5C 5F
 	   5C 00
- 00000B19		     1		.code
- 00000B19  52		     1		push	edx
- 00000B1A  BA 00001A9D R     1		mov	edx,OFFSET ??000F
- 00000B1F  E8 00000000 E     1		call	WriteString
- 00000B24  5A		     1		pop	edx
- 00000B25  66| C7 05		    mov xyUI.X, 10
+ 00000B2B		     1		.code
+ 00000B2B  52		     1		push	edx
+ 00000B2C  BA 00001A9D R     1		mov	edx,OFFSET ??000F
+ 00000B31  E8 00000000 E     1		call	WriteString
+ 00000B36  5A		     1		pop	edx
+ 00000B37  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000B2E  66| C7 05		    mov xyUI.Y, 12
+ 00000B40  66| C7 05		    mov xyUI.Y, 12
 	   00001637 R
 	   000C
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
 				    mWrite <"text">
  00001AD6		     1		.data		
  00001AD6 74 65 78 74 00     1		??0010 BYTE "text",0	
- 00000B48		     1		.code
- 00000B48  52		     1		push	edx
- 00000B49  BA 00001AD6 R     1		mov	edx,OFFSET ??0010
- 00000B4E  E8 00000000 E     1		call	WriteString
- 00000B53  5A		     1		pop	edx
- 00000B54  E8 00000000 E		call WaitMsg
- 00000B59  E9 FFFFF5E0		    jmp SELECT_STAGE
+ 00000B5A		     1		.code
+ 00000B5A  52		     1		push	edx
+ 00000B5B  BA 00001AD6 R     1		mov	edx,OFFSET ??0010
+ 00000B60  E8 00000000 E     1		call	WriteString
+ 00000B65  5A		     1		pop	edx
+ 00000B66  E8 00000000 E		call WaitMsg
+ 00000B6B  E9 FFFFF5CE		    jmp SELECT_STAGE
 
- 00000B5E			END_FUNC: 
- 00000B5E  E8 00000000 E	    call ClrScr
-					
- 00000B63  66| C7 05		    mov xyUI.X, 20
+ 00000B70			END_FUNC: 
+ 00000B70  E8 00000000 E	    call ClrScr
+ 00000B75  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000B6C  66| C7 05		    mov xyUI.Y, 7
+ 00000B7E  66| C7 05		    mov xyUI.Y, 7
 	   00001637 R
 	   0007
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1290,15 +1292,15 @@ src\main.asm						     Page 1 - 1
 	   20 20 20 20 20
 	   20 20 20 20 20
 	   5F 20 00
- 00000B86		     1		.code
- 00000B86  52		     1		push	edx
- 00000B87  BA 00001ADB R     1		mov	edx,OFFSET ??0011
- 00000B8C  E8 00000000 E     1		call	WriteString
- 00000B91  5A		     1		pop	edx
- 00000B92  66| C7 05		    mov xyUI.X, 20
+ 00000B98		     1		.code
+ 00000B98  52		     1		push	edx
+ 00000B99  BA 00001ADB R     1		mov	edx,OFFSET ??0011
+ 00000B9E  E8 00000000 E     1		call	WriteString
+ 00000BA3  5A		     1		pop	edx
+ 00000BA4  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000B9B  66| C7 05		    mov xyUI.Y, 8
+ 00000BAD  66| C7 05		    mov xyUI.Y, 8
 	   00001637 R
 	   0008
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1313,15 +1315,15 @@ src\main.asm						     Page 1 - 1
 	   5F 20 5F 5F 20
 	   20 20 5F 5F 7C
 	   20 7C 00
- 00000BB5		     1		.code
- 00000BB5  52		     1		push	edx
- 00000BB6  BA 00001B06 R     1		mov	edx,OFFSET ??0012
- 00000BBB  E8 00000000 E     1		call	WriteString
- 00000BC0  5A		     1		pop	edx
- 00000BC1  66| C7 05		    mov xyUI.X, 20
+ 00000BC7		     1		.code
+ 00000BC7  52		     1		push	edx
+ 00000BC8  BA 00001B06 R     1		mov	edx,OFFSET ??0012
+ 00000BCD  E8 00000000 E     1		call	WriteString
+ 00000BD2  5A		     1		pop	edx
+ 00000BD3  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000BCA  66| C7 05		    mov xyUI.Y, 9
+ 00000BDC  66| C7 05		    mov xyUI.Y, 9
 	   00001637 R
 	   0009
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1336,15 +1338,15 @@ src\main.asm						     Page 1 - 1
 	   20 27 5F 20 5C
 	   20 2F 20 5F 60
 	   20 7C 00
- 00000BE4		     1		.code
- 00000BE4  52		     1		push	edx
- 00000BE5  BA 00001B31 R     1		mov	edx,OFFSET ??0013
- 00000BEA  E8 00000000 E     1		call	WriteString
- 00000BEF  5A		     1		pop	edx
- 00000BF0  66| C7 05		    mov xyUI.X, 20
+ 00000BF6		     1		.code
+ 00000BF6  52		     1		push	edx
+ 00000BF7  BA 00001B31 R     1		mov	edx,OFFSET ??0013
+ 00000BFC  E8 00000000 E     1		call	WriteString
+ 00000C01  5A		     1		pop	edx
+ 00000C02  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000BF9  66| C7 05		    mov xyUI.Y, 10
+ 00000C0B  66| C7 05		    mov xyUI.Y, 10
 	   00001637 R
 	   000A
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1359,15 +1361,15 @@ src\main.asm						     Page 1 - 1
 	   20 7C 20 7C 20
 	   7C 20 28 5F 7C
 	   20 7C 00
- 00000C13		     1		.code
- 00000C13  52		     1		push	edx
- 00000C14  BA 00001B5C R     1		mov	edx,OFFSET ??0014
- 00000C19  E8 00000000 E     1		call	WriteString
- 00000C1E  5A		     1		pop	edx
- 00000C1F  66| C7 05		    mov xyUI.X, 20
+ 00000C25		     1		.code
+ 00000C25  52		     1		push	edx
+ 00000C26  BA 00001B5C R     1		mov	edx,OFFSET ??0014
+ 00000C2B  E8 00000000 E     1		call	WriteString
+ 00000C30  5A		     1		pop	edx
+ 00000C31  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000C28  66| C7 05		    mov xyUI.Y, 11
+ 00000C3A  66| C7 05		    mov xyUI.Y, 11
 	   00001637 R
 	   000B
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1382,28 +1384,28 @@ src\main.asm						     Page 1 - 1
 	   5F 7C 20 7C 5F
 	   7C 5C 5F 5F 2C
 	   5F 7C 00
- 00000C42		     1		.code
- 00000C42  52		     1		push	edx
- 00000C43  BA 00001B87 R     1		mov	edx,OFFSET ??0015
- 00000C48  E8 00000000 E     1		call	WriteString
- 00000C4D  5A		     1		pop	edx
- 00000C4E  66| C7 05		    mov xyUI.X, 20
+ 00000C54		     1		.code
+ 00000C54  52		     1		push	edx
+ 00000C55  BA 00001B87 R     1		mov	edx,OFFSET ??0015
+ 00000C5A  E8 00000000 E     1		call	WriteString
+ 00000C5F  5A		     1		pop	edx
+ 00000C60  66| C7 05		    mov xyUI.X, 20
 	   00001635 R
 	   0014
- 00000C57  66| C7 05		    mov xyUI.Y, 12
+ 00000C69  66| C7 05		    mov xyUI.Y, 12
 	   00001637 R
 	   000C
 				    invoke SetConsoleCursorPosition, consoleHandle, xyUI
- 00000C71  E8 00000000 E		call WaitMsg 
+ 00000C83  E8 00000000 E		call WaitMsg
 					exit
- 00000C7D			main ENDP 
+ 00000C8F			main ENDP 
 
- 00000C7D			Select_Load_Stage PROC
- 00000C7D			chooseStage:
- 00000C7D  66| C7 05		    mov xyUI.X, 10
+ 00000C8F			Select_Load_Stage PROC
+ 00000C8F			chooseStage:
+ 00000C8F  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000C86  66| C7 05			mov xyUI.Y, 7
+ 00000C98  66| C7 05			mov xyUI.Y, 7
 	   00001637 R
 	   0007
 					INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1427,15 +1429,15 @@ src\main.asm						     Page 1 - 1
 	   20 20 20 20 20
 	   20 20 20 20 20
 	   20 20 00
- 00000CA0		     1		.code
- 00000CA0  52		     1		push	edx
- 00000CA1  BA 00001BB2 R     1		mov	edx,OFFSET ??0016
- 00000CA6  E8 00000000 E     1		call	WriteString
- 00000CAB  5A		     1		pop	edx
- 00000CAC  66| C7 05		    mov xyUI.X, 10
+ 00000CB2		     1		.code
+ 00000CB2  52		     1		push	edx
+ 00000CB3  BA 00001BB2 R     1		mov	edx,OFFSET ??0016
+ 00000CB8  E8 00000000 E     1		call	WriteString
+ 00000CBD  5A		     1		pop	edx
+ 00000CBE  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000CB5  66| C7 05		    mov xyUI.Y, 8
+ 00000CC7  66| C7 05		    mov xyUI.Y, 8
 	   00001637 R
 	   0008
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1459,15 +1461,15 @@ src\main.asm						     Page 1 - 1
 	   20 5F 5F 20 5F
 	   20 20 5F 5F 5F
 	   20 20 00
- 00000CCF		     1		.code
- 00000CCF  52		     1		push	edx
- 00000CD0  BA 00001C0A R     1		mov	edx,OFFSET ??0017
- 00000CD5  E8 00000000 E     1		call	WriteString
- 00000CDA  5A		     1		pop	edx
- 00000CDB  66| C7 05		    mov xyUI.X, 10
+ 00000CE1		     1		.code
+ 00000CE1  52		     1		push	edx
+ 00000CE2  BA 00001C0A R     1		mov	edx,OFFSET ??0017
+ 00000CE7  E8 00000000 E     1		call	WriteString
+ 00000CEC  5A		     1		pop	edx
+ 00000CED  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000CE4  66| C7 05		    mov xyUI.Y, 9
+ 00000CF6  66| C7 05		    mov xyUI.Y, 9
 	   00001637 R
 	   0009
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1491,15 +1493,15 @@ src\main.asm						     Page 1 - 1
 	   2F 20 5F 60 20
 	   7C 2F 20 5F 20
 	   5C 20 00
- 00000CFE		     1		.code
- 00000CFE  52		     1		push	edx
- 00000CFF  BA 00001C62 R     1		mov	edx,OFFSET ??0018
- 00000D04  E8 00000000 E     1		call	WriteString
- 00000D09  5A		     1		pop	edx
- 00000D0A  66| C7 05		    mov xyUI.X, 10
+ 00000D10		     1		.code
+ 00000D10  52		     1		push	edx
+ 00000D11  BA 00001C62 R     1		mov	edx,OFFSET ??0018
+ 00000D16  E8 00000000 E     1		call	WriteString
+ 00000D1B  5A		     1		pop	edx
+ 00000D1C  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000D13  66| C7 05		    mov xyUI.Y, 10
+ 00000D25  66| C7 05		    mov xyUI.Y, 10
 	   00001637 R
 	   000A
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1523,15 +1525,15 @@ src\main.asm						     Page 1 - 1
 	   20 28 5F 7C 20
 	   7C 20 20 5F 5F
 	   2F 20 00
- 00000D2D		     1		.code
- 00000D2D  52		     1		push	edx
- 00000D2E  BA 00001CBA R     1		mov	edx,OFFSET ??0019
- 00000D33  E8 00000000 E     1		call	WriteString
- 00000D38  5A		     1		pop	edx
- 00000D39  66| C7 05		    mov xyUI.X, 10
+ 00000D3F		     1		.code
+ 00000D3F  52		     1		push	edx
+ 00000D40  BA 00001CBA R     1		mov	edx,OFFSET ??0019
+ 00000D45  E8 00000000 E     1		call	WriteString
+ 00000D4A  5A		     1		pop	edx
+ 00000D4B  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000D42  66| C7 05		    mov xyUI.Y, 11
+ 00000D54  66| C7 05		    mov xyUI.Y, 11
 	   00001637 R
 	   000B
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1555,15 +1557,15 @@ src\main.asm						     Page 1 - 1
 	   5C 5F 5F 2C 20
 	   7C 5C 5F 5F 5F
 	   7C 20 00
- 00000D5C		     1		.code
- 00000D5C  52		     1		push	edx
- 00000D5D  BA 00001D12 R     1		mov	edx,OFFSET ??001A
- 00000D62  E8 00000000 E     1		call	WriteString
- 00000D67  5A		     1		pop	edx
- 00000D68  66| C7 05		    mov xyUI.X, 10
+ 00000D6E		     1		.code
+ 00000D6E  52		     1		push	edx
+ 00000D6F  BA 00001D12 R     1		mov	edx,OFFSET ??001A
+ 00000D74  E8 00000000 E     1		call	WriteString
+ 00000D79  5A		     1		pop	edx
+ 00000D7A  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000D71  66| C7 05		    mov xyUI.Y, 12
+ 00000D83  66| C7 05		    mov xyUI.Y, 12
 	   00001637 R
 	   000C
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1587,15 +1589,15 @@ src\main.asm						     Page 1 - 1
 	   7C 5F 5F 5F 2F
 	   20 20 20 20 20
 	   20 20 00
- 00000D8B		     1		.code
- 00000D8B  52		     1		push	edx
- 00000D8C  BA 00001D6A R     1		mov	edx,OFFSET ??001B
- 00000D91  E8 00000000 E     1		call	WriteString
- 00000D96  5A		     1		pop	edx
- 00000D97  66| C7 05		    mov xyUI.X, 10
+ 00000D9D		     1		.code
+ 00000D9D  52		     1		push	edx
+ 00000D9E  BA 00001D6A R     1		mov	edx,OFFSET ??001B
+ 00000DA3  E8 00000000 E     1		call	WriteString
+ 00000DA8  5A		     1		pop	edx
+ 00000DA9  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000DA0  66| C7 05		    mov xyUI.Y, 14
+ 00000DB2  66| C7 05		    mov xyUI.Y, 14
 	   00001637 R
 	   000E
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1606,39 +1608,39 @@ src\main.asm						     Page 1 - 1
 	   2C 20 2E 2E 2E
 	   2C 20 39 39 29
 	   20 3A 20 00
- 00000DBA		     1		.code
- 00000DBA  52		     1		push	edx
- 00000DBB  BA 00001DC2 R     1		mov	edx,OFFSET ??001C
- 00000DC0  E8 00000000 E     1		call	WriteString
- 00000DC5  5A		     1		pop	edx
- 00000DC6  BA 00001388 R		mov edx, offset fileInput
- 00000DCB  B9 00000064			mov ecx, sizeof fileInput
- 00000DD0  E8 00000000 E		call ReadString
+ 00000DCC		     1		.code
+ 00000DCC  52		     1		push	edx
+ 00000DCD  BA 00001DC2 R     1		mov	edx,OFFSET ??001C
+ 00000DD2  E8 00000000 E     1		call	WriteString
+ 00000DD7  5A		     1		pop	edx
+ 00000DD8  BA 00001388 R		mov edx, offset fileInput
+ 00000DDD  B9 00000064			mov ecx, sizeof fileInput
+ 00000DE2  E8 00000000 E		call ReadString
 
- 00000DD5  B9 00000064			mov ecx, sizeof fileInput 
- 00000DDA  BF 00001388 R		mov edi, offset fileInput
- 00000DDF  B0 00			mov al, 0
- 00000DE1  F2/ AE			repne scasb
- 00000DE3  BB 00000064			mov ebx, sizeof fileInput
- 00000DE8  2B D9		    sub ebx, ecx
- 00000DEA  4B			    dec ebx ; get lenghof fileInput
- 00000DEB  83 FB 02			cmp ebx, 2
- 00000DEE  75 77			jne file_not_ok
+ 00000DE7  B9 00000064			mov ecx, sizeof fileInput 
+ 00000DEC  BF 00001388 R		mov edi, offset fileInput
+ 00000DF1  B0 00			mov al, 0
+ 00000DF3  F2/ AE			repne scasb
+ 00000DF5  BB 00000064			mov ebx, sizeof fileInput
+ 00000DFA  2B D9		    sub ebx, ecx
+ 00000DFC  4B			    dec ebx ; get lenghof fileInput
+ 00000DFD  83 FB 02			cmp ebx, 2
+ 00000E00  75 77			jne file_not_ok
 					
- 00000DF0  66| C7 05		    mov xyUI.X, 10
+ 00000E02  66| C7 05		    mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000DF9  66| C7 05		    mov xyUI.Y, 15
+ 00000E0B  66| C7 05		    mov xyUI.Y, 15
 	   00001637 R
 	   000F
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
 					; handle full filename
- 00000E13  A0 00001388 R		mov al, fileInput[0]
- 00000E18  A2 000013FB R		mov filename[15], al
- 00000E1D  A2 00001632 R		mov stageText[0], al
- 00000E22  A0 00001389 R		mov al, fileInput[1]
- 00000E27  A2 000013FC R		mov filename[16], al
- 00000E2C  A2 00001633 R		mov stageText[1], al
+ 00000E25  A0 00001388 R		mov al, fileInput[0]
+ 00000E2A  A2 000013FB R		mov filename[15], al
+ 00000E2F  A2 00001632 R		mov stageText[0], al
+ 00000E34  A0 00001389 R		mov al, fileInput[1]
+ 00000E39  A2 000013FC R		mov filename[16], al
+ 00000E3E  A2 00001633 R		mov stageText[1], al
 					
 					mWrite <"Loading Stage : ">
  00001DDA		     1		.data		
@@ -1646,32 +1648,32 @@ src\main.asm						     Page 1 - 1
 	   6E 67 20 53 74
 	   61 67 65 20 3A
 	   20 00
- 00000E31		     1		.code
- 00000E31  52		     1		push	edx
- 00000E32  BA 00001DDA R     1		mov	edx,OFFSET ??001D
- 00000E37  E8 00000000 E     1		call	WriteString
- 00000E3C  5A		     1		pop	edx
- 00000E3D  BA 00001632 R		mov edx, offset stageText
- 00000E42  E8 00000000 E		call WriteString
-					mWrite <", ">
+ 00000E43		     1		.code
+ 00000E43  52		     1		push	edx
+ 00000E44  BA 00001DDA R     1		mov	edx,OFFSET ??001D
+ 00000E49  E8 00000000 E     1		call	WriteString
+ 00000E4E  5A		     1		pop	edx
+ 00000E4F  BA 00001632 R		mov edx, offset stageText
+ 00000E54  E8 00000000 E		call WriteString
+					mWrite <". ">
  00001DEB		     1		.data		
- 00001DEB 2C 20 00	     1		??001E BYTE ", ",0	
- 00000E47		     1		.code
- 00000E47  52		     1		push	edx
- 00000E48  BA 00001DEB R     1		mov	edx,OFFSET ??001E
- 00000E4D  E8 00000000 E     1		call	WriteString
- 00000E52  5A		     1		pop	edx
- 00000E53  BA 000013EC R		mov edx, offset filename
- 00000E58  E8 00000000 E		call OpenInputFile
- 00000E5D  A3 00001402 R		mov fileHandle, eax
- 00000E62  83 F8 FF			cmp eax,INVALID_HANDLE_VALUE
- 00000E65  75 39			jne file_ok
- 00000E67			file_not_ok:
- 00000E67  E8 00000000 E		call ClrScr
- 00000E6C  66| C7 05			mov xyUI.X, 10
+ 00001DEB 2E 20 00	     1		??001E BYTE ". ",0	
+ 00000E59		     1		.code
+ 00000E59  52		     1		push	edx
+ 00000E5A  BA 00001DEB R     1		mov	edx,OFFSET ??001E
+ 00000E5F  E8 00000000 E     1		call	WriteString
+ 00000E64  5A		     1		pop	edx
+ 00000E65  BA 000013EC R		mov edx, offset filename
+ 00000E6A  E8 00000000 E		call OpenInputFile
+ 00000E6F  A3 00001402 R		mov fileHandle, eax
+ 00000E74  83 F8 FF			cmp eax,INVALID_HANDLE_VALUE
+ 00000E77  75 39			jne file_ok
+ 00000E79			file_not_ok:
+ 00000E79  E8 00000000 E		call ClrScr
+ 00000E7E  66| C7 05			mov xyUI.X, 10
 	   00001635 R
 	   000A
- 00000E75  66| C7 05		    mov xyUI.Y, 13
+ 00000E87  66| C7 05		    mov xyUI.Y, 13
 	   00001637 R
 	   000D
 				    INVOKE SetConsoleCursorPosition, consoleHandle, xyUI
@@ -1681,17 +1683,17 @@ src\main.asm						     Page 1 - 1
 	   20 6E 6F 74 20
 	   66 6F 75 6E 64
 	   2E 0D 0A 00
- 00000E8F		     1		.code
- 00000E8F  52		     1		push	edx
- 00000E90  BA 00001DEE R     1		mov	edx,OFFSET ??001F
- 00000E95  E8 00000000 E     1		call	WriteString
- 00000E9A  5A		     1		pop	edx
- 00000E9B  E9 FFFFFDDD			jmp chooseStage
- 00000EA0			file_ok:
- 00000EA0  BA 00000000 R		mov edx, offset buffer
- 00000EA5  B9 00001388			mov ecx, BufferSize
- 00000EAA  E8 00000000 E		call ReadFromFile
- 00000EAF  73 16			jnc check_Buffer_Size
+ 00000EA1		     1		.code
+ 00000EA1  52		     1		push	edx
+ 00000EA2  BA 00001DEE R     1		mov	edx,OFFSET ??001F
+ 00000EA7  E8 00000000 E     1		call	WriteString
+ 00000EAC  5A		     1		pop	edx
+ 00000EAD  E9 FFFFFDDD			jmp chooseStage
+ 00000EB2			file_ok:
+ 00000EB2  BA 00000000 R		mov edx, offset buffer
+ 00000EB7  B9 00001388			mov ecx, BufferSize
+ 00000EBC  E8 00000000 E		call ReadFromFile
+ 00000EC1  73 16			jnc check_Buffer_Size
 					mWrite "Error reading file. "
  00001E01		     1		.data		
  00001E01 45 72 72 6F 72     1		??0020 BYTE "Error reading file. ",0	
@@ -1699,16 +1701,16 @@ src\main.asm						     Page 1 - 1
 	   69 6E 67 20 66
 	   69 6C 65 2E 20
 	   00
- 00000EB1		     1		.code
- 00000EB1  52		     1		push	edx
- 00000EB2  BA 00001E01 R     1		mov	edx,OFFSET ??0020
- 00000EB7  E8 00000000 E     1		call	WriteString
- 00000EBC  5A		     1		pop	edx
- 00000EBD  E8 00000000 E		call WriteWindowsMsg
- 00000EC2  E9 00000264			jmp close_File
- 00000EC7			check_Buffer_Size:
- 00000EC7  3D 00001388			cmp eax, BufferSize
- 00000ECC  72 11			jb buf_size_ok
+ 00000EC3		     1		.code
+ 00000EC3  52		     1		push	edx
+ 00000EC4  BA 00001E01 R     1		mov	edx,OFFSET ??0020
+ 00000EC9  E8 00000000 E     1		call	WriteString
+ 00000ECE  5A		     1		pop	edx
+ 00000ECF  E8 00000000 E		call WriteWindowsMsg
+ 00000ED4  E9 00000264			jmp close_File
+ 00000ED9			check_Buffer_Size:
+ 00000ED9  3D 00001388			cmp eax, BufferSize
+ 00000EDE  72 11			jb buf_size_ok
 					mWrite <"Error: Buffer too small for the file",0dh,0ah>
  00001E16		     1		.data		
  00001E16 45 72 72 6F 72     1		??0021 BYTE "Error: Buffer too small for the file",0dh,0ah,0	
@@ -1719,55 +1721,55 @@ src\main.asm						     Page 1 - 1
 	   6F 72 20 74 68
 	   65 20 66 69 6C
 	   65 0D 0A 00
- 00000ECE		     1		.code
- 00000ECE  52		     1		push	edx
- 00000ECF  BA 00001E16 R     1		mov	edx,OFFSET ??0021
- 00000ED4  E8 00000000 E     1		call	WriteString
- 00000ED9  5A		     1		pop	edx
- 00000EDA  E9 00000256			jmp quit
- 00000EDF			buf_size_ok:
- 00000EDF  C6 80 00000000 R		mov buffer[eax],0
+ 00000EE0		     1		.code
+ 00000EE0  52		     1		push	edx
+ 00000EE1  BA 00001E16 R     1		mov	edx,OFFSET ??0021
+ 00000EE6  E8 00000000 E     1		call	WriteString
+ 00000EEB  5A		     1		pop	edx
+ 00000EEC  E9 00000256			jmp quit
+ 00000EF1			buf_size_ok:
+ 00000EF1  C6 80 00000000 R		mov buffer[eax],0
 	   00
- 00000EE6  8B C8			mov ecx, eax
- 00000EE8  BB 00000000			mov ebx, 0
- 00000EED  33 D2			xor edx,edx
- 00000EEF  33 F6			xor esi,esi
+ 00000EF8  8B C8			mov ecx, eax
+ 00000EFA  BB 00000000			mov ebx, 0
+ 00000EFF  33 D2			xor edx,edx
+ 00000F01  33 F6			xor esi,esi
 
 				; initialize
- 00000EF1  C7 05 00001461 R	    mov snakeLen, 0 
+ 00000F03  C7 05 00001461 R	    mov snakeLen, 0 
 	   00000000
- 00000EFB  C7 05 000015E0 R	    mov obstacleLen, 0 
+ 00000F0D  C7 05 000015E0 R	    mov obstacleLen, 0 
 	   00000000
- 00000F05  C7 05 000014B0 R	    mov appleLen, 0 
+ 00000F17  C7 05 000014B0 R	    mov appleLen, 0 
 	   00000000
- 00000F0F  C7 05 00001620 R	    mov boxLen, 0
+ 00000F21  C7 05 00001620 R	    mov boxLen, 0
 	   00000000
 
- 00000F19			readEachChar:
- 00000F19  0F B6 83			movzx eax, byte ptr [buffer + ebx]
+ 00000F2B			readEachChar:
+ 00000F2B  0F B6 83			movzx eax, byte ptr [buffer + ebx]
 	   00000000 R
- 00000F20  83 F8 30			cmp eax, '0'
- 00000F23  0F 82 00000190		jb notNUM
- 00000F29  83 F8 39			cmp eax, '9'
- 00000F2C  0F 87 00000187		ja notNUM
+ 00000F32  83 F8 30			cmp eax, '0'
+ 00000F35  0F 82 00000190		jb notNUM
+ 00000F3B  83 F8 39			cmp eax, '9'
+ 00000F3E  0F 87 00000187		ja notNUM
 					; isNum
 					; handle First digit
- 00000F32  83 E8 30			sub eax, '0'
- 00000F35  52				push edx
- 00000F36  53				push ebx
- 00000F37  BB 0000000A			mov ebx, 10
- 00000F3C  F7 E3			mul ebx
- 00000F3E  5B				pop ebx
- 00000F3F  5A				pop edx
+ 00000F44  83 E8 30			sub eax, '0'
+ 00000F47  52				push edx
+ 00000F48  53				push ebx
+ 00000F49  BB 0000000A			mov ebx, 10
+ 00000F4E  F7 E3			mul ebx
+ 00000F50  5B				pop ebx
+ 00000F51  5A				pop edx
 					; handle second digit
- 00000F40  43				inc ebx
- 00000F41  49				dec ecx
- 00000F42  52				push edx
- 00000F43  0F B6 93			movzx edx, byte ptr [buffer + ebx]
+ 00000F52  43				inc ebx
+ 00000F53  49				dec ecx
+ 00000F54  52				push edx
+ 00000F55  0F B6 93			movzx edx, byte ptr [buffer + ebx]
 	   00000000 R
- 00000F4A  83 EA 30			sub edx, '0'
- 00000F4D  03 C2			add eax, edx
- 00000F4F  5A				pop edx
+ 00000F5C  83 EA 30			sub edx, '0'
+ 00000F5F  03 C2			add eax, edx
+ 00000F61  5A				pop edx
 					; call WriteDec ; Get integer in eax !
 					
 					; dx
@@ -1777,164 +1779,163 @@ src\main.asm						     Page 1 - 1
 					; 30 for apple X ; 31 for apple Y ; line 4
 					; 40 for trap X ; 41 for trap Y   ; line 5
 					; 50 for box X ; 51 for box Y     ; line 6
- 00000F50  66| 83 FA 00			cmp dx, 0
- 00000F54  74 6A			je loadSnakeX
- 00000F56  66| 83 FA 01			cmp dx, 1
- 00000F5A  74 72			je loadSnakeY
- 00000F5C  66| 83 FA 0A			cmp dx, 10
- 00000F60  0F 84 0000008B		je loadObsX
- 00000F66  66| 83 FA 0B			cmp dx, 11
- 00000F6A  0F 84 0000008D		je loadObsY
- 00000F70  66| 83 FA 14			cmp dx, 20
- 00000F74  0F 84 000000A6		je loadGoalX
- 00000F7A  66| 83 FA 15			cmp dx, 21
- 00000F7E  0F 84 000000A7		je loadGoalY
- 00000F84  66| 83 FA 1E			cmp dx, 30
- 00000F88  0F 84 000000A8		je loadAppleX
- 00000F8E  66| 83 FA 1F			cmp dx, 31
- 00000F92  0F 84 000000AA		je loadAppleY
- 00000F98  66| 83 FA 28			cmp dx, 40
- 00000F9C  0F 84 000000EB		je loadTrapX
- 00000FA2  66| 83 FA 29			cmp dx, 41
- 00000FA6  0F 84 000000ED		je loadTrapY
- 00000FAC  66| 83 FA 32			cmp dx, 50
- 00000FB0  0F 84 000000AF		je loadBoxesX
- 00000FB6  66| 83 FA 33			cmp dx, 51
- 00000FBA  0F 84 000000B1		je loadBoxesY
+ 00000F62  66| 83 FA 00			cmp dx, 0
+ 00000F66  74 6A			je loadSnakeX
+ 00000F68  66| 83 FA 01			cmp dx, 1
+ 00000F6C  74 72			je loadSnakeY
+ 00000F6E  66| 83 FA 0A			cmp dx, 10
+ 00000F72  0F 84 0000008B		je loadObsX
+ 00000F78  66| 83 FA 0B			cmp dx, 11
+ 00000F7C  0F 84 0000008D		je loadObsY
+ 00000F82  66| 83 FA 14			cmp dx, 20
+ 00000F86  0F 84 000000A6		je loadGoalX
+ 00000F8C  66| 83 FA 15			cmp dx, 21
+ 00000F90  0F 84 000000A7		je loadGoalY
+ 00000F96  66| 83 FA 1E			cmp dx, 30
+ 00000F9A  0F 84 000000A8		je loadAppleX
+ 00000FA0  66| 83 FA 1F			cmp dx, 31
+ 00000FA4  0F 84 000000AA		je loadAppleY
+ 00000FAA  66| 83 FA 28			cmp dx, 40
+ 00000FAE  0F 84 000000EB		je loadTrapX
+ 00000FB4  66| 83 FA 29			cmp dx, 41
+ 00000FB8  0F 84 000000ED		je loadTrapY
+ 00000FBE  66| 83 FA 32			cmp dx, 50
+ 00000FC2  0F 84 000000AF		je loadBoxesX
+ 00000FC8  66| 83 FA 33			cmp dx, 51
+ 00000FCC  0F 84 000000B1		je loadBoxesY
 				;------------------------
- 00000FC0			loadSnakeX:
- 00000FC0  66| 89 86			mov snake[esi].pos.X, ax
+ 00000FD2			loadSnakeX:
+ 00000FD2  66| 89 86			mov snake[esi].pos.X, ax
 	   00001416 R
- 00000FC7  8B C6			mov eax, esi
- 00000FC9  E9 00000151			jmp looping
- 00000FCE			loadSnakeY:
- 00000FCE  66| 89 86			mov snake[esi].pos.Y, ax
+ 00000FD9  8B C6			mov eax, esi
+ 00000FDB  E9 00000151			jmp looping
+ 00000FE0			loadSnakeY:
+ 00000FE0  66| 89 86			mov snake[esi].pos.Y, ax
 	   00001418 R
- 00000FD5  C6 86 0000141A R		mov snake[esi].dir, 0
+ 00000FE7  C6 86 0000141A R		mov snake[esi].dir, 0
 	   00
- 00000FDC  83 C6 05			add esi,TYPE snake
- 00000FDF  A1 00001461 R		mov eax, snakeLen
- 00000FE4  83 C0 01			add eax, 1
- 00000FE7  A3 00001461 R		mov snakeLen, eax
- 00000FEC  E9 0000012E			jmp looping
- 00000FF1			loadObsX:
- 00000FF1  66| 89 86			mov obstacles[esi].pos.X, ax
+ 00000FEE  83 C6 05			add esi,TYPE snake
+ 00000FF1  A1 00001461 R		mov eax, snakeLen
+ 00000FF6  83 C0 01			add eax, 1
+ 00000FF9  A3 00001461 R		mov snakeLen, eax
+ 00000FFE  E9 0000012E			jmp looping
+ 00001003			loadObsX:
+ 00001003  66| 89 86			mov obstacles[esi].pos.X, ax
 	   000014B4 R
- 00000FF8  E9 00000122			jmp looping
- 00000FFD			loadObsY:
- 00000FFD  66| 89 86			mov obstacles[esi].pos.Y, ax
+ 0000100A  E9 00000122			jmp looping
+ 0000100F			loadObsY:
+ 0000100F  66| 89 86			mov obstacles[esi].pos.Y, ax
 	   000014B6 R
- 00001004  C6 86 000014B8 R		mov obstacles[esi].harmful, 0
+ 00001016  C6 86 000014B8 R		mov obstacles[esi].harmful, 0
 	   00
- 0000100B  83 C6 05			add esi,TYPE obstacles
- 0000100E  A1 000015E0 R		mov eax, obstacleLen
- 00001013  83 C0 01			add eax, 1
- 00001016  A3 000015E0 R		mov obstacleLen, eax
- 0000101B  E9 000000FF			jmp looping
- 00001020			loadGoalX:
- 00001020  66| A3			mov goal.X, ax
+ 0000101D  83 C6 05			add esi,TYPE obstacles
+ 00001020  A1 000015E0 R		mov eax, obstacleLen
+ 00001025  83 C0 01			add eax, 1
+ 00001028  A3 000015E0 R		mov obstacleLen, eax
+ 0000102D  E9 000000FF			jmp looping
+ 00001032			loadGoalX:
+ 00001032  66| A3			mov goal.X, ax
 	   00001624 R
- 00001026  E9 000000F4			jmp looping
- 0000102B			loadGoalY:
- 0000102B  66| A3			mov goal.Y, ax
+ 00001038  E9 000000F4			jmp looping
+ 0000103D			loadGoalY:
+ 0000103D  66| A3			mov goal.Y, ax
 	   00001626 R
- 00001031  E9 000000E9			jmp looping
- 00001036			loadAppleX:
- 00001036  66| 89 86			mov apples[esi].pos.X, ax
+ 00001043  E9 000000E9			jmp looping
+ 00001048			loadAppleX:
+ 00001048  66| 89 86			mov apples[esi].pos.X, ax
 	   00001465 R
- 0000103D  E9 000000DD			jmp looping
- 00001042			loadAppleY:
- 00001042  66| 89 86			mov apples[esi].pos.Y, ax
+ 0000104F  E9 000000DD			jmp looping
+ 00001054			loadAppleY:
+ 00001054  66| 89 86			mov apples[esi].pos.Y, ax
 	   00001467 R
- 00001049  C6 86 00001469 R	    mov apples[esi].eaten, 0
+ 0000105B  C6 86 00001469 R	    mov apples[esi].eaten, 0
 	   00
- 00001050  83 C6 05			add esi,TYPE apples
- 00001053  A1 000014B0 R		mov eax, appleLen
- 00001058  83 C0 01			add eax, 1
- 0000105B  A3 000014B0 R		mov appleLen,eax
- 00001060  E9 000000BA			jmp looping
- 00001065			loadBoxesX:
- 00001065  66| 89 86			mov boxes[esi].X, ax
+ 00001062  83 C6 05			add esi,TYPE apples
+ 00001065  A1 000014B0 R		mov eax, appleLen
+ 0000106A  83 C0 01			add eax, 1
+ 0000106D  A3 000014B0 R		mov appleLen,eax
+ 00001072  E9 000000BA			jmp looping
+ 00001077			loadBoxesX:
+ 00001077  66| 89 86			mov boxes[esi].X, ax
 	   000015E4 R
- 0000106C  E9 000000AE			jmp looping
- 00001071			loadBoxesY:
- 00001071  66| 89 86			mov boxes[esi].Y, ax
+ 0000107E  E9 000000AE			jmp looping
+ 00001083			loadBoxesY:
+ 00001083  66| 89 86			mov boxes[esi].Y, ax
 	   000015E6 R
- 00001078  83 C6 04			add esi,TYPE boxes
- 0000107B  A1 00001620 R		mov eax, boxLen
- 00001080  83 C0 01			add eax, 1
- 00001083  A3 00001620 R		mov boxLen, eax
- 00001088  E9 00000092			jmp looping
- 0000108D			loadTrapX:
- 0000108D  66| 89 86			mov obstacles[esi].pos.X, ax
+ 0000108A  83 C6 04			add esi,TYPE boxes
+ 0000108D  A1 00001620 R		mov eax, boxLen
+ 00001092  83 C0 01			add eax, 1
+ 00001095  A3 00001620 R		mov boxLen, eax
+ 0000109A  E9 00000092			jmp looping
+ 0000109F			loadTrapX:
+ 0000109F  66| 89 86			mov obstacles[esi].pos.X, ax
 	   000014B4 R
- 00001094  E9 00000086			jmp looping
- 00001099			loadTrapY:
- 00001099  66| 89 86			mov obstacles[esi].pos.Y, ax
+ 000010A6  E9 00000086			jmp looping
+ 000010AB			loadTrapY:
+ 000010AB  66| 89 86			mov obstacles[esi].pos.Y, ax
 	   000014B6 R
- 000010A0  C6 86 000014B8 R		mov obstacles[esi].harmful, 1
+ 000010B2  C6 86 000014B8 R		mov obstacles[esi].harmful, 1
 	   01
- 000010A7  83 C6 05			add esi,TYPE obstacles
- 000010AA  A1 000015E0 R		mov eax, obstacleLen
- 000010AF  83 C0 01			add eax, 1
- 000010B2  A3 000015E0 R		mov obstacleLen, eax
- 000010B7  EB 66			jmp looping
+ 000010B9  83 C6 05			add esi,TYPE obstacles
+ 000010BC  A1 000015E0 R		mov eax, obstacleLen
+ 000010C1  83 C0 01			add eax, 1
+ 000010C4  A3 000015E0 R		mov obstacleLen, eax
+ 000010C9  EB 66			jmp looping
 				;------------------------
- 000010B9			notNUM:
- 000010B9  83 F8 2C			cmp eax, ','
- 000010BC  74 57			je casePosY
- 000010BE  83 F8 3B			cmp eax, ';'
- 000010C1  74 57			je caseNextPos
+ 000010CB			notNUM:
+ 000010CB  83 F8 2C			cmp eax, ','
+ 000010CE  74 57			je casePosY
+ 000010D0  83 F8 3B			cmp eax, ';'
+ 000010D3  74 57			je caseNextPos
 				; nextLine
- 000010C3  33 F6			xor esi, esi
+ 000010D5  33 F6			xor esi, esi
 				;	add edx, 9
- 000010C5  49				dec ecx
- 000010C6  43				inc ebx
+ 000010D7  49				dec ecx
+ 000010D8  43				inc ebx
 					
-				; -----------------
 				    .IF edx <= 9
- 000010CC  BA 0000000A		        mov edx,10
+ 000010DE  BA 0000000A		        mov edx,10
 				    .ELSEIF edx <= 19
- 000010D8  BA 00000014		        mov edx,20
+ 000010EA  BA 00000014		        mov edx,20
 				    .ELSEIF edx <= 29
- 000010E4  BA 0000001E		        mov edx,30
+ 000010F6  BA 0000001E		        mov edx,30
 				    .ELSEIF edx <= 39
- 000010F0  BA 00000028		        mov edx,40
+ 00001102  BA 00000028		        mov edx,40
 				    .ELSE
- 000010F7  BA 00000032		        mov edx,50
+ 00001109  BA 00000032		        mov edx,50
 				    .ENDIF
 				; -----------------	
 					
- 000010FC  66| 83 FA 28			cmp dx, 40 ; handle trap data
- 00001100  75 1D			jne looping
- 00001102  52				push edx
- 00001103  8B 35 000015E0 R		mov esi, obstacleLen
- 00001109  B8 00000005			mov eax, TYPE obstacles
- 0000110E  F7 E6			mul esi
- 00001110  8B F0			mov esi, eax
- 00001112  5A				pop edx
- 00001113  EB 0A			jmp looping
- 00001115			casePosY:
- 00001115  83 C2 01			add edx, 1
- 00001118  EB 05			jmp looping
- 0000111A			caseNextPos:
- 0000111A  83 C2 FF			add edx, -1
- 0000111D  EB 00			jmp looping
- 0000111F			looping:
- 0000111F  43				inc ebx
- 00001120  49				dec ecx
- 00001121  83 F9 00			cmp ecx,0
- 00001124  74 05			je close_File 
- 00001126  E9 FFFFFDEE			jmp readEachChar
+ 0000110E  66| 83 FA 28			cmp dx, 40 ; handle trap data
+ 00001112  75 1D			jne looping
+ 00001114  52				push edx
+ 00001115  8B 35 000015E0 R		mov esi, obstacleLen
+ 0000111B  B8 00000005			mov eax, TYPE obstacles
+ 00001120  F7 E6			mul esi
+ 00001122  8B F0			mov esi, eax
+ 00001124  5A				pop edx
+ 00001125  EB 0A			jmp looping
+ 00001127			casePosY:
+ 00001127  83 C2 01			add edx, 1
+ 0000112A  EB 05			jmp looping
+ 0000112C			caseNextPos:
+ 0000112C  83 C2 FF			add edx, -1
+ 0000112F  EB 00			jmp looping
+ 00001131			looping:
+ 00001131  43				inc ebx
+ 00001132  49				dec ecx
+ 00001133  83 F9 00			cmp ecx,0
+ 00001136  74 05			je close_File 
+ 00001138  E9 FFFFFDEE			jmp readEachChar
 					;-----------------------
- 0000112B			close_File:
- 0000112B  A1 00001402 R		mov eax, fileHandle
- 00001130  E8 00000000 E		call CloseFile
- 00001135			quit:
- 00001135  C3				ret
- 00001136			Select_Load_Stage ENDP
+ 0000113D			close_File:
+ 0000113D  A1 00001402 R		mov eax, fileHandle
+ 00001142  E8 00000000 E		call CloseFile
+ 00001147			quit:
+ 00001147  C3				ret
+ 00001148			Select_Load_Stage ENDP
 				END main
-Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:06:07
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:21:00
 src\main.asm						     Symbols 2 - 1
 
 
@@ -2082,7 +2083,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 00001E3D DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00001136 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00001148 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -2169,31 +2170,31 @@ ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RegisterClassA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-Select_Load_Stage  . . . . . . .	P Near	 00000C7D _TEXT	Length= 000004B9 Public STDCALL
-  chooseStage  . . . . . . . . .	L Near	 00000C7D _TEXT	
-  file_not_ok  . . . . . . . . .	L Near	 00000E67 _TEXT	
-  file_ok  . . . . . . . . . . .	L Near	 00000EA0 _TEXT	
-  check_Buffer_Size  . . . . . .	L Near	 00000EC7 _TEXT	
-  buf_size_ok  . . . . . . . . .	L Near	 00000EDF _TEXT	
-  readEachChar . . . . . . . . .	L Near	 00000F19 _TEXT	
-  loadSnakeX . . . . . . . . . .	L Near	 00000FC0 _TEXT	
-  loadSnakeY . . . . . . . . . .	L Near	 00000FCE _TEXT	
-  loadObsX . . . . . . . . . . .	L Near	 00000FF1 _TEXT	
-  loadObsY . . . . . . . . . . .	L Near	 00000FFD _TEXT	
-  loadGoalX  . . . . . . . . . .	L Near	 00001020 _TEXT	
-  loadGoalY  . . . . . . . . . .	L Near	 0000102B _TEXT	
-  loadAppleX . . . . . . . . . .	L Near	 00001036 _TEXT	
-  loadAppleY . . . . . . . . . .	L Near	 00001042 _TEXT	
-  loadBoxesX . . . . . . . . . .	L Near	 00001065 _TEXT	
-  loadBoxesY . . . . . . . . . .	L Near	 00001071 _TEXT	
-  loadTrapX  . . . . . . . . . .	L Near	 0000108D _TEXT	
-  loadTrapY  . . . . . . . . . .	L Near	 00001099 _TEXT	
-  notNUM . . . . . . . . . . . .	L Near	 000010B9 _TEXT	
-  casePosY . . . . . . . . . . .	L Near	 00001115 _TEXT	
-  caseNextPos  . . . . . . . . .	L Near	 0000111A _TEXT	
-  looping  . . . . . . . . . . .	L Near	 0000111F _TEXT	
-  close_File . . . . . . . . . .	L Near	 0000112B _TEXT	
-  quit . . . . . . . . . . . . .	L Near	 00001135 _TEXT	
+Select_Load_Stage  . . . . . . .	P Near	 00000C8F _TEXT	Length= 000004B9 Public STDCALL
+  chooseStage  . . . . . . . . .	L Near	 00000C8F _TEXT	
+  file_not_ok  . . . . . . . . .	L Near	 00000E79 _TEXT	
+  file_ok  . . . . . . . . . . .	L Near	 00000EB2 _TEXT	
+  check_Buffer_Size  . . . . . .	L Near	 00000ED9 _TEXT	
+  buf_size_ok  . . . . . . . . .	L Near	 00000EF1 _TEXT	
+  readEachChar . . . . . . . . .	L Near	 00000F2B _TEXT	
+  loadSnakeX . . . . . . . . . .	L Near	 00000FD2 _TEXT	
+  loadSnakeY . . . . . . . . . .	L Near	 00000FE0 _TEXT	
+  loadObsX . . . . . . . . . . .	L Near	 00001003 _TEXT	
+  loadObsY . . . . . . . . . . .	L Near	 0000100F _TEXT	
+  loadGoalX  . . . . . . . . . .	L Near	 00001032 _TEXT	
+  loadGoalY  . . . . . . . . . .	L Near	 0000103D _TEXT	
+  loadAppleX . . . . . . . . . .	L Near	 00001048 _TEXT	
+  loadAppleY . . . . . . . . . .	L Near	 00001054 _TEXT	
+  loadBoxesX . . . . . . . . . .	L Near	 00001077 _TEXT	
+  loadBoxesY . . . . . . . . . .	L Near	 00001083 _TEXT	
+  loadTrapX  . . . . . . . . . .	L Near	 0000109F _TEXT	
+  loadTrapY  . . . . . . . . . .	L Near	 000010AB _TEXT	
+  notNUM . . . . . . . . . . . .	L Near	 000010CB _TEXT	
+  casePosY . . . . . . . . . . .	L Near	 00001127 _TEXT	
+  caseNextPos  . . . . . . . . .	L Near	 0000112C _TEXT	
+  looping  . . . . . . . . . . .	L Near	 00001131 _TEXT	
+  close_File . . . . . . . . . .	L Near	 0000113D _TEXT	
+  quit . . . . . . . . . . . . .	L Near	 00001147 _TEXT	
 SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -2236,7 +2237,7 @@ WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000C7D Public STDCALL
+start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000C8F Public STDCALL
   TITLE_SCREEN . . . . . . . . .	L Near	 0000000C _TEXT	
   SELECT_STAGE . . . . . . . . .	L Near	 0000013E _TEXT	
   MAIN_LOOP  . . . . . . . . . .	L Near	 0000014D _TEXT	
@@ -2268,25 +2269,25 @@ start@0  . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000C7D Public 
   MOVE_ON_T  . . . . . . . . . .	L Near	 00000683 _TEXT	
   NO_UPDATE  . . . . . . . . . .	L Near	 00000685 _TEXT	
   APPLE_EATEN  . . . . . . . . .	L Near	 00000690 _TEXT	
-  CONTINUE_APPLE . . . . . . . .	L Near	 000006F5 _TEXT	
-  CHECK_GOAL . . . . . . . . . .	L Near	 000006FA _TEXT	
-  CHECK_SUPP . . . . . . . . . .	L Near	 00000720 _TEXT	
-  LOOP_SUPP  . . . . . . . . . .	L Near	 000007E2 _TEXT	
-  SUPP_OBST  . . . . . . . . . .	L Near	 000007FF _TEXT	
-  CONT_OBST  . . . . . . . . . .	L Near	 00000824 _TEXT	
-  SUPP_APPLE . . . . . . . . . .	L Near	 00000834 _TEXT	
-  CONT_APPLE_SUPP  . . . . . . .	L Near	 00000854 _TEXT	
-  SUPP_BOX . . . . . . . . . . .	L Near	 0000086F _TEXT	
-  CONT_BOX_SUPP  . . . . . . . .	L Near	 00000883 _TEXT	
-  SUPP_GOAL  . . . . . . . . . .	L Near	 00000888 _TEXT	
-  CONT_SUPP  . . . . . . . . . .	L Near	 0000089C _TEXT	
-  GRAVITY  . . . . . . . . . . .	L Near	 000008B2 _TEXT	
-  LOOP_GRAVITY . . . . . . . . .	L Near	 000008BD _TEXT	
-  SUPPORTED  . . . . . . . . . .	L Near	 000008E4 _TEXT	
-  NEXT_LOOP  . . . . . . . . . .	L Near	 000008E4 _TEXT	
-  FINISH . . . . . . . . . . . .	L Near	 000008E9 _TEXT	
-  GAMEOVER . . . . . . . . . . .	L Near	 00000A35 _TEXT	
-  END_FUNC . . . . . . . . . . .	L Near	 00000B5E _TEXT	
+  CONTINUE_APPLE . . . . . . . .	L Near	 00000707 _TEXT	
+  CHECK_GOAL . . . . . . . . . .	L Near	 0000070C _TEXT	
+  CHECK_SUPP . . . . . . . . . .	L Near	 00000732 _TEXT	
+  LOOP_SUPP  . . . . . . . . . .	L Near	 000007F4 _TEXT	
+  SUPP_OBST  . . . . . . . . . .	L Near	 00000811 _TEXT	
+  CONT_OBST  . . . . . . . . . .	L Near	 00000836 _TEXT	
+  SUPP_APPLE . . . . . . . . . .	L Near	 00000846 _TEXT	
+  CONT_APPLE_SUPP  . . . . . . .	L Near	 00000866 _TEXT	
+  SUPP_BOX . . . . . . . . . . .	L Near	 00000881 _TEXT	
+  CONT_BOX_SUPP  . . . . . . . .	L Near	 00000895 _TEXT	
+  SUPP_GOAL  . . . . . . . . . .	L Near	 0000089A _TEXT	
+  CONT_SUPP  . . . . . . . . . .	L Near	 000008AE _TEXT	
+  GRAVITY  . . . . . . . . . . .	L Near	 000008C4 _TEXT	
+  LOOP_GRAVITY . . . . . . . . .	L Near	 000008CF _TEXT	
+  SUPPORTED  . . . . . . . . . .	L Near	 000008F6 _TEXT	
+  NEXT_LOOP  . . . . . . . . . .	L Near	 000008F6 _TEXT	
+  FINISH . . . . . . . . . . . .	L Near	 000008FB _TEXT	
+  GAMEOVER . . . . . . . . . . .	L Near	 00000A47 _TEXT	
+  END_FUNC . . . . . . . . . . .	L Near	 00000B70 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 

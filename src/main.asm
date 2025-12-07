@@ -54,7 +54,6 @@ main PROC
 ; title screen
 TITLE_SCREEN:
     call ClrScr
-	
     INVOKE SetConsoleTextAttribute, consoleHandle, 0Ah
 	mov xyUI.X, 10
 	mov xyUI.Y, 7
@@ -133,7 +132,7 @@ INPUT:
     .ELSEIF ax == 1372h ; R
         jmp TITLE_SCREEN
 	.ELSEIF ax == 011Bh ; ESC 
-		jmp END_FUNC 
+		jmp END_FUNC
 	.ELSE 
 		jmp NEXT_LOOP
 	.ENDIF
@@ -175,9 +174,9 @@ CHECK_INTERSECTING:
     .ENDIF
 
 ; check collision with boxes
-	.IF boxLen == 0
-		jmp CHECK_BORDER
-	.ENDIF
+    .IF boxLen == 0
+        jmp CHECK_BORDER
+    .ENDIF
     mov ecx, boxLen
     mov esi, 0
 BOX_COLLISION_CHECK:
@@ -268,7 +267,7 @@ ORI_VAL:
     .IF bl == 3
         add dx, -1
     .ENDIF
- 
+
 ; move box
     pop esi
     .IF bl == 0
@@ -482,6 +481,8 @@ APPLE_EATEN:
         mov snake[eax].dir, bl    
         inc snakeLen
         mov apples[esi].eaten, 1
+        mov apples[esi].pos.X, 1
+        mov apples[esi].pos.Y, 1
     .ENDIF
 CONTINUE_APPLE:
     add esi, TYPE apples 
@@ -629,11 +630,10 @@ LOOP_GRAVITY:
 SUPPORTED:
 NEXT_LOOP:
 	jmp MAIN_LOOP 
-	 
+
 FINISH:
     call ClrScr
-	
-	mov xyUI.X, 10
+    mov xyUI.X, 10
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
     mWrite <"   ____                            _         _       _   _                 ">
@@ -667,7 +667,6 @@ FINISH:
 
 GAMEOVER:
     call ClrScr
-	
     mov xyUI.X, 10
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -697,7 +696,6 @@ GAMEOVER:
 
 END_FUNC: 
     call ClrScr
-	
     mov xyUI.X, 20
     mov xyUI.Y, 7
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
@@ -721,7 +719,7 @@ END_FUNC:
     mov xyUI.X, 20
     mov xyUI.Y, 12
     invoke SetConsoleCursorPosition, consoleHandle, xyUI
-	call WaitMsg 
+	call WaitMsg
 	exit
 main ENDP 
 
@@ -783,7 +781,7 @@ chooseStage:
 	mWrite <"Loading Stage : ">
 	mov edx, offset stageText
 	call WriteString
-	mWrite <", ">
+	mWrite <". ">
 	mov edx, offset filename
 	call OpenInputFile
 	mov fileHandle, eax
@@ -952,7 +950,6 @@ notNUM:
 	dec ecx
 	inc ebx
 	
-; -----------------
     .IF edx <= 9
         mov edx,10
     .ELSEIF edx <= 19
