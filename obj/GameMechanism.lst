@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    12/06/25 18:51:12
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 11:12:31
 src\GameMechanism.asm					     Page 1 - 1
 
 
@@ -42,8 +42,15 @@ src\GameMechanism.asm					     Page 1 - 1
 			      C 
 				INCLUDE GameMechanism.inc
 			      C CheckIntersection PROTO :WORD, :WORD, 
-			      C                         :PTR BLOCK, snakeLen:DWORD, 
+			      C                         :PTR BLOCK, :DWORD, 
 			      C                         :PTR OBSTACLE, :DWORD
+			      C 
+			      C CheckSupported PROTO :WORD, :WORD,
+			      C                      :PTR OBSTACLE, :DWORD,
+			      C                      :PTR APPLE, :DWORD,
+			      C                      :PTR COORD, :DWORD,
+			      C                      :COORD 
+			      C 
 			      C 
 
  00000000			.data
@@ -107,8 +114,87 @@ src\GameMechanism.asm					     Page 1 - 1
 				    ret
  00000054			CheckIntersection ENDP
 
+				; -------------- check supported --------------
+ 00000054			CheckSupported PROC x:WORD, y:WORD, 
+				                    obstaclePtr:PTR OBSTACLE, obstacleLen:DWORD,
+				                    applePtr:PTR APPLE, appleLen:DWORD,
+				                    boxPtr:PTR COORD, boxLen:DWORD,
+				                    goal:COORD 
+				    
+ 00000057  8B 4D 14		    mov ecx, obstacleLen
+ 0000005A  8B 75 10		    mov esi, obstaclePtr 
+ 0000005D			SUPP_OBST:
+ 0000005D  66| 3B 06		    cmp ax, (OBSTACLE PTR [esi]).pos.X
+ 00000060  75 13		    jne CONT_OBST
+ 00000062  66| 3B 5E 02		    cmp bx, (OBSTACLE PTR [esi]).pos.Y
+ 00000066  75 0D		    jne CONT_OBST
+
+ 00000068  8A 56 04		    mov dl, (OBSTACLE PTR [esi]).harmful
+				    .IF dl == 0
+ 0000006F  EB 56		        jmp SUPPORTED
+				    .ELSE
+ 00000073  B6 01		        mov dh, 1
+				    .ENDIF
+
+
+ 00000075			CONT_OBST:
+ 00000075  83 C6 05		    add esi, SIZEOF OBSTACLE 
+ 00000078  E2 E3		    loop SUPP_OBST
+				    
+				    
+ 0000007A  8B 4D 1C		    mov ecx, appleLen 
+ 0000007D  BE 00000000		    mov esi, 0
+ 00000082			SUPP_APPLE:
+ 00000082  8A 56 04		    mov dl, (APPLE PTR [esi]).eaten
+				    .IF dl == 0
+ 00000089  66| 3B 06		        cmp ax, (APPLE PTR [esi]).pos.X
+ 0000008C  75 08		        jne CONT_APPLE_SUPP
+ 0000008E  66| 3B 5E 02		        cmp bx, (APPLE PTR [esi]).pos.Y
+ 00000092  75 02		        jne CONT_APPLE_SUPP
+
+ 00000094  EB 31		        jmp SUPPORTED
+				    .ENDIF
+
+ 00000096			CONT_APPLE_SUPP:
+ 00000096  83 C6 05		    add esi, SIZEOF APPLE 
+ 00000099  E2 E7		    loop SUPP_APPLE
+
+				; ---------- check box support ------------
+ 0000009B  8B 4D 24		    mov ecx, boxLen
+ 0000009E  BE 00000000		    mov esi, 0
+ 000000A3			SUPP_BOX:
+ 000000A3  66| 3B 06		    cmp ax, (COORD PTR [esi]).X
+ 000000A6  75 08		    jne CONT_BOX_SUPP
+ 000000A8  66| 3B 5E 02		    cmp bx, (COORD PTR [esi]).Y
+ 000000AC  75 02		    jne CONT_BOX_SUPP
+
+ 000000AE  EB 17		    jmp SUPPORTED
+
+ 000000B0			CONT_BOX_SUPP:
+ 000000B0  83 C6 04		    add esi, SIZEOF COORD 
+ 000000B3  E2 EE		    loop SUPP_BOX
+
+				; ------------ check goal support -----------
+ 000000B5			SUPP_GOAL:
+ 000000B5  66| 3B 45 28		    cmp ax, goal.X
+ 000000B9  75 08		    jne CONT_SUPP 
+ 000000BB  66| 3B 5D 2A		    cmp bx, goal.Y
+ 000000BF  75 02		    jne CONT_SUPP 
+
+ 000000C1  EB 04		    jmp SUPPORTED
+
+ 000000C3			CONT_SUPP:
+ 000000C3  B6 01		    mov dh, 1
+ 000000C5  EB 02		    jmp RETURN
+
+ 000000C7			SUPPORTED:
+ 000000C7  B6 02		    mov dh, 2
+
+ 000000C9			RETURN:
+				    ret
+ 000000CD			CheckSupported ENDP
 				END
-Microsoft (R) Macro Assembler Version 6.11		    12/06/25 18:51:12
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 11:12:31
 src\GameMechanism.asm					     Symbols 2 - 1
 
 
@@ -212,7 +298,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000054 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000CD DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -236,6 +322,26 @@ CheckIntersection  . . . . . . .	P Near	 00000000 _TEXT	Length= 00000054 Public 
   GAMEOVER . . . . . . . . . . .	L Near	 0000004A _TEXT	
   NO_INTERSECTION  . . . . . . .	L Near	 0000004E _TEXT	
   RETURN . . . . . . . . . . . .	L Near	 00000050 _TEXT	
+CheckSupported . . . . . . . . .	P Near	 00000054 _TEXT	Length= 000000DC Public STDCALL
+  x  . . . . . . . . . . . . . .	Word	 bp + 00000008
+  y  . . . . . . . . . . . . . .	Word	 bp + 0000000C
+  obstaclePtr  . . . . . . . . .	DWord	 bp + 00000010
+  obstacleLen  . . . . . . . . .	DWord	 bp + 00000014
+  applePtr . . . . . . . . . . .	DWord	 bp + 00000018
+  appleLen . . . . . . . . . . .	DWord	 bp + 0000001C
+  boxPtr . . . . . . . . . . . .	DWord	 bp + 00000020
+  boxLen . . . . . . . . . . . .	DWord	 bp + 00000024
+  goal . . . . . . . . . . . . .	DWord	 bp + 00000028
+  SUPP_OBST  . . . . . . . . . .	L Near	 0000005D _TEXT	
+  CONT_OBST  . . . . . . . . . .	L Near	 00000075 _TEXT	
+  SUPP_APPLE . . . . . . . . . .	L Near	 00000082 _TEXT	
+  CONT_APPLE_SUPP  . . . . . . .	L Near	 00000096 _TEXT	
+  SUPP_BOX . . . . . . . . . . .	L Near	 000000A3 _TEXT	
+  CONT_BOX_SUPP  . . . . . . . .	L Near	 000000B0 _TEXT	
+  SUPP_GOAL  . . . . . . . . . .	L Near	 000000B5 _TEXT	
+  CONT_SUPP  . . . . . . . . . .	L Near	 000000C3 _TEXT	
+  SUPPORTED  . . . . . . . . . .	L Near	 000000C7 _TEXT	
+  RETURN . . . . . . . . . . . .	L Near	 000000C9 _TEXT	
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL

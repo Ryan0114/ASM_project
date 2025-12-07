@@ -64,17 +64,21 @@ RETURN:
 CheckIntersection ENDP
 
 ; -------------- check supported --------------
-CheckSupported PROC
+CheckSupported PROC x:WORD, y:WORD, 
+                    obstaclePtr:PTR OBSTACLE, obstacleLen:DWORD,
+                    applePtr:PTR APPLE, appleLen:DWORD,
+                    boxPtr:PTR COORD, boxLen:DWORD,
+                    goal:COORD 
     
     mov ecx, obstacleLen
-    mov esi, 0
+    mov esi, obstaclePtr 
 SUPP_OBST:
-    cmp ax, obstacles[esi].pos.X
+    cmp ax, (OBSTACLE PTR [esi]).pos.X
     jne CONT_OBST
-    cmp bx, obstacles[esi].pos.Y
+    cmp bx, (OBSTACLE PTR [esi]).pos.Y
     jne CONT_OBST
 
-    mov dl, obstacles[esi].harmful
+    mov dl, (OBSTACLE PTR [esi]).harmful
     .IF dl == 0
         jmp SUPPORTED
     .ELSE
@@ -83,29 +87,59 @@ SUPP_OBST:
 
 
 CONT_OBST:
-    add esi, TYPE obstacles
+    add esi, SIZEOF OBSTACLE 
     loop SUPP_OBST
     
     
     mov ecx, appleLen 
     mov esi, 0
 SUPP_APPLE:
-    .IF apples[esi].eaten == 0
-        cmp ax, apples[esi].pos.X
+    mov dl, (APPLE PTR [esi]).eaten
+    .IF dl == 0
+        cmp ax, (APPLE PTR [esi]).pos.X
         jne CONT_APPLE_SUPP
-        cmp bx, apples[esi].pos.Y
+        cmp bx, (APPLE PTR [esi]).pos.Y
         jne CONT_APPLE_SUPP
 
         jmp SUPPORTED
     .ENDIF
 
 CONT_APPLE_SUPP:
-    add esi, TYPE apples 
+    add esi, SIZEOF APPLE 
     loop SUPP_APPLE
 
 ; ---------- check box support ------------
     mov ecx, boxLen
     mov esi, 0
 SUPP_BOX:
+    cmp ax, (COORD PTR [esi]).X
+    jne CONT_BOX_SUPP
+    cmp bx, (COORD PTR [esi]).Y
+    jne CONT_BOX_SUPP
+
+    jmp SUPPORTED
+
+CONT_BOX_SUPP:
+    add esi, SIZEOF COORD 
+    loop SUPP_BOX
+
+; ------------ check goal support -----------
+SUPP_GOAL:
+    cmp ax, goal.X
+    jne CONT_SUPP 
+    cmp bx, goal.Y
+    jne CONT_SUPP 
+
+    jmp SUPPORTED
+
+CONT_SUPP:
+    mov dh, 1
+    jmp RETURN
+
+SUPPORTED:
+    mov dh, 2
+
+RETURN:
+    ret
 CheckSupported ENDP
 END
