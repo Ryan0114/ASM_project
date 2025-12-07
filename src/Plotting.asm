@@ -81,12 +81,19 @@ PlotBox PROC consoleHandle:DWORD, boxPtr:PTR COORD, bLen:DWORD, pWritten:PTR DWO
 
 LOOP_BOX:
     pushad
+	mov ax, (COORD ptr [esi]).X
+	mov bx, (COORD ptr [esi]).Y
+	
+	.IF bx >= 1Ah
+	    jmp NEXT
+	.ENDIF
     INVOKE SetConsoleTextAttribute, consoleHandle, 06h
     INVOKE SetConsoleCursorPosition, consoleHandle, (COORD ptr [esi]) 
     INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
     INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
+	
+NEXT:
     popad
-
     add esi, SIZEOF COORD
     loop LOOP_BOX
     ret

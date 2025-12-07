@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 6.11		    12/07/25 11:52:30
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:06:07
 src\Plotting.asm					     Page 1 - 1
 
 
@@ -135,20 +135,27 @@ src\Plotting.asm					     Page 1 - 1
 
  000000F5			LOOP_BOX:
  000000F5  60			    pushad
+ 000000F6  66| 8B 06			mov ax, (COORD ptr [esi]).X
+ 000000F9  66| 8B 5E 02			mov bx, (COORD ptr [esi]).Y
+					
+					.IF bx >= 1Ah
+ 00000103  EB 34			    jmp NEXT
+					.ENDIF
 				    INVOKE SetConsoleTextAttribute, consoleHandle, 06h
 				    INVOKE SetConsoleCursorPosition, consoleHandle, (COORD ptr [esi]) 
 				    INVOKE WriteConsoleW, consoleHandle, ADDR fullBlock, 2, ADDR written, 0
 				    INVOKE SetConsoleTextAttribute, consoleHandle, 0Fh
- 0000012A  61			    popad
-
- 0000012B  83 C6 04		    add esi, SIZEOF COORD
- 0000012E  E2 C5		    loop LOOP_BOX
+					
+ 00000139			NEXT:
+ 00000139  61			    popad
+ 0000013A  83 C6 04		    add esi, SIZEOF COORD
+ 0000013D  E2 B6		    loop LOOP_BOX
 				    ret
- 00000134			PlotBox ENDP
+ 00000143			PlotBox ENDP
 
 				END
 
-Microsoft (R) Macro Assembler Version 6.11		    12/07/25 11:52:30
+Microsoft (R) Macro Assembler Version 6.11		    12/07/25 22:06:07
 src\Plotting.asm					     Symbols 2 - 1
 
 
@@ -278,7 +285,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 0000000A DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000134 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000143 DWord	  Public  'CODE'	
 
 
 Procedures,  parameters and locals:
@@ -348,12 +355,13 @@ PlotApples . . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 00000057 Public 
   aLen . . . . . . . . . . . . .	DWord	 bp + 00000010
   pWritten . . . . . . . . . . .	DWord	 bp + 00000014
   LOOP_APPLE . . . . . . . . . .	L Near	 00000045 _TEXT	
-PlotBox  . . . . . . . . . . . .	P Near	 000000E2 _TEXT	Length= 00000052 Public STDCALL
+PlotBox  . . . . . . . . . . . .	P Near	 000000E2 _TEXT	Length= 00000061 Public STDCALL
   consoleHandle  . . . . . . . .	DWord	 bp + 00000008
   boxPtr . . . . . . . . . . . .	DWord	 bp + 0000000C
   bLen . . . . . . . . . . . . .	DWord	 bp + 00000010
   pWritten . . . . . . . . . . .	DWord	 bp + 00000014
   LOOP_BOX . . . . . . . . . . .	L Near	 000000F5 _TEXT	
+  NEXT . . . . . . . . . . . . .	L Near	 00000139 _TEXT	
 PlotObst . . . . . . . . . . . .	P Near	 00000089 _TEXT	Length= 00000059 Public STDCALL
   consoleHandle  . . . . . . . .	DWord	 bp + 00000008
   obstPtr  . . . . . . . . . . .	DWord	 bp + 0000000C
