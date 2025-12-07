@@ -205,12 +205,15 @@ CONT_BB_COLL:
     mov ecx, appleLen
     mov esi, 0
 BA_COLL:
-    cmp ax, apples[esi].pos.X
-    jne CONT_BA_COLL
-    cmp dx, apples[esi].pos.Y
-    jne CONT_BA_COLL
+    mov bh, apples[esi].eaten
+    .IF bh == 0
+        cmp ax, apples[esi].pos.X
+        jne CONT_BA_COLL
+        cmp dx, apples[esi].pos.Y
+        jne CONT_BA_COLL
 
-    jmp NO_UPDATE
+        jmp NO_UPDATE
+    .ENDIF
 CONT_BA_COLL:
     add esi, SIZEOF APPLE 
     loop BA_COLL
@@ -248,6 +251,8 @@ ORI_VAL:
         add boxes[esi].Y, -1
     .ELSEIF bl == 2
         add boxes[esi].X, -2
+    .ELSEIF bl == 3
+        jmp NO_UPDATE
     .ENDIF
 
     jmp CHECK_BORDER
